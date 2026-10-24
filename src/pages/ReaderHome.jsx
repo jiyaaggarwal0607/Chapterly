@@ -225,6 +225,13 @@ export default function ReaderHome({ onBack, onRead }) {
       <header className="catalog-navbar">
         <button
             type="button"
+            className="catalog-back-button"
+            onClick={onBack}
+            >
+            ← Back
+        </button>
+        <button
+            type="button"
             className="catalog-brand"
             onClick={onBack}
             aria-label="Back to Chapterly home"

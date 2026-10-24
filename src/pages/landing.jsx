@@ -69,9 +69,9 @@ export default function Landing({ onReaderEnter, onCompanyEnter }) {
         </button>
 
         <div className="auth-card">
-          <h1 className="auth-logo">
-            chapterly<span>.</span>
-          </h1>
+          <div className="auth-logo">
+            <BrandLogo className="auth-brand-logo" />
+          </div>
 
           <h2>{mode === "signup" ? "Join Chapterly" : "Welcome back"}</h2>
           <p>
