@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import "./Home.css";
 import BrandLogo from "../components/BrandLogo";
 import { api } from "../api";
+
 const sections = [
   {
     id: "manga",
@@ -45,6 +46,20 @@ const sections = [
 export default function Home({ onOpenSection, onLogout }) {
   const [showWelcome, setShowWelcome] = useState(true);
   const [activeMessage, setActiveMessage] = useState("");
+  const [activePanel, setActivePanel] = useState("");
+
+  const [showSettings, setShowSettings] = useState(false);
+  const [showWallet, setShowWallet] = useState(false);
+
+  const [walletData, setWalletData] = useState(null);
+  const [walletStatus, setWalletStatus] = useState("");
+  const [topUp, setTopUp] = useState("");
+  const [walletBusy, setWalletBusy] = useState(false);
+
+  const [settingsName, setSettingsName] = useState("");
+  const [settingsPassword, setSettingsPassword] = useState("");
+  const [settingsStatus, setSettingsStatus] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const storedUser = (() => {
     try {
@@ -53,28 +68,27 @@ export default function Home({ onOpenSection, onLogout }) {
       return null;
     }
   })();
-  const initial = (storedUser?.name || "?").trim().charAt(0).toUpperCase();
 
-  const [showSettings, setShowSettings] = useState(false);
-  const [showWallet, setShowWallet] = useState(false);
-  const [walletData, setWalletData] = useState(null);
-  const [walletStatus, setWalletStatus] = useState("");
-  const [topUp, setTopUp] = useState("");
-  const [walletBusy, setWalletBusy] = useState(false);
+  const initial = (storedUser?.name || "?")
+    .trim()
+    .charAt(0)
+    .toUpperCase();
 
   async function loadWallet() {
     setWalletStatus("Loading wallet...");
+
     try {
       const data = await api("/wallet");
       setWalletData(data);
       setWalletStatus("");
     } catch (err) {
-      setWalletStatus(err.message);
+      setWalletStatus(err.message || "Unable to load wallet.");
     }
   }
 
   function openWallet() {
     setActiveMessage("");
+    setActivePanel("");
     setShowSettings(false);
     setShowWallet(true);
     setTopUp("");
@@ -83,29 +97,33 @@ export default function Home({ onOpenSection, onLogout }) {
 
   async function addMoney() {
     const amount = Number(topUp);
+
     if (!Number.isFinite(amount) || amount < 1 || amount > 50000) {
       setWalletStatus("Enter an amount between 1 and 50000.");
       return;
     }
+
     setWalletBusy(true);
     setWalletStatus("Adding money...");
+
     try {
-      await api("/wallet/add", { method: "POST", body: { amount } });
+      await api("/wallet/add", {
+        method: "POST",
+        body: { amount },
+      });
+
       setTopUp("");
       await loadWallet();
     } catch (err) {
-      setWalletStatus(err.message);
+      setWalletStatus(err.message || "Unable to add money.");
     } finally {
       setWalletBusy(false);
     }
   }
-  const [settingsName, setSettingsName] = useState("");
-  const [settingsPassword, setSettingsPassword] = useState("");
-  const [settingsStatus, setSettingsStatus] = useState("");
-  const [saving, setSaving] = useState(false);
 
   function openSettings() {
     setActiveMessage("");
+    setActivePanel("");
     setSettingsName(storedUser?.name || "");
     setSettingsPassword("");
     setSettingsStatus("");
@@ -115,40 +133,62 @@ export default function Home({ onOpenSection, onLogout }) {
 
   async function saveSettings() {
     const body = {};
-    if (settingsName.trim()) body.name = settingsName.trim();
+
+    if (settingsName.trim()) {
+      body.name = settingsName.trim();
+    }
+
     if (settingsPassword) {
       if (settingsPassword.length < 6) {
         setSettingsStatus("Password must be at least 6 characters.");
         return;
       }
+
       body.password = settingsPassword;
     }
+
     if (!Object.keys(body).length) {
       setSettingsStatus("Nothing to save.");
       return;
     }
+
     setSaving(true);
     setSettingsStatus("Saving...");
+
     try {
-      const updated = await api("/users/me", { method: "PUT", body });
-      const newName = updated?.name || body.name || storedUser?.name;
-      localStorage.setItem("user", JSON.stringify({ ...storedUser, name: newName }));
+      const updated = await api("/users/me", {
+        method: "PUT",
+        body,
+      });
+
+      const newName =
+        updated?.name || body.name || storedUser?.name;
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ ...storedUser, name: newName })
+      );
+
       setSettingsPassword("");
       setSettingsStatus("Saved.");
     } catch (err) {
-      setSettingsStatus(err.message);
+      setSettingsStatus(err.message || "Unable to save settings.");
     } finally {
       setSaving(false);
     }
   }
 
   async function showProfile() {
+    setShowWallet(false);
+    setShowSettings(false);
+    setActivePanel("");
     setActiveMessage("Loading your profile...");
+
     try {
       const me = await api("/users/me");
       setActiveMessage(`${me.name} · ${me.email} · ${me.role}`);
     } catch (err) {
-      setActiveMessage(err.message);
+      setActiveMessage(err.message || "Unable to load profile.");
     }
   }
 
@@ -169,10 +209,12 @@ export default function Home({ onOpenSection, onLogout }) {
           ? "Translator Hub"
           : sectionId.charAt(0).toUpperCase() + sectionId.slice(1);
 
-      setActiveMessage(
-        `${sectionName} is ready to be connected.`
-      );
+      setActiveMessage(`${sectionName} is ready to be connected.`);
     }
+  }
+
+  function closePanel() {
+    setActivePanel("");
   }
 
   return (
@@ -330,9 +372,17 @@ export default function Home({ onOpenSection, onLogout }) {
               <div
                 className="home-notice"
                 role="status"
-                style={{ flexDirection: "column", alignItems: "stretch", gap: "10px" }}
+                style={{
+                  flexDirection: "column",
+                  alignItems: "stretch",
+                  gap: "10px",
+                }}
               >
-                <strong>Wallet balance: ₹{walletData ? walletData.balance : "..."}</strong>
+                <strong>
+                  Wallet balance: ₹
+                  {walletData ? walletData.balance : "..."}
+                </strong>
+
                 <div style={{ display: "flex", gap: "10px" }}>
                   <input
                     type="number"
@@ -342,32 +392,50 @@ export default function Home({ onOpenSection, onLogout }) {
                     value={topUp}
                     onChange={(e) => setTopUp(e.target.value)}
                   />
-                  <button type="button" onClick={addMoney} disabled={walletBusy}>
+
+                  <button
+                    type="button"
+                    onClick={addMoney}
+                    disabled={walletBusy}
+                  >
                     Add money
                   </button>
-                  <button type="button" onClick={() => setShowWallet(false)}>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowWallet(false)}
+                  >
                     Close
                   </button>
                 </div>
+
                 {walletStatus && <span>{walletStatus}</span>}
-                {walletData && walletData.transactions.length === 0 && (
-                  <span>No transactions yet.</span>
-                )}
+
+                {walletData &&
+                  walletData.transactions?.length === 0 && (
+                    <span>No transactions yet.</span>
+                  )}
+
                 <div style={{ maxHeight: "200px", overflowY: "auto" }}>
-                  {walletData &&
-                    walletData.transactions.map((t) => (
-                      <div
-                        key={t._id}
-                        style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}
-                      >
-                        <span>
-                          {t.note || t.type} · {new Date(t.createdAt).toLocaleDateString()}
-                        </span>
-                        <span>
-                          {t.type === "credit" ? "+" : "-"}₹{t.amount}
-                        </span>
-                      </div>
-                    ))}
+                  {walletData?.transactions?.map((t) => (
+                    <div
+                      key={t._id}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        padding: "4px 0",
+                      }}
+                    >
+                      <span>
+                        {t.note || t.type} ·{" "}
+                        {new Date(t.createdAt).toLocaleDateString()}
+                      </span>
+
+                      <span>
+                        {t.type === "credit" ? "+" : "-"}₹{t.amount}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -376,7 +444,11 @@ export default function Home({ onOpenSection, onLogout }) {
               <div
                 className="home-notice"
                 role="status"
-                style={{ flexDirection: "column", alignItems: "stretch", gap: "10px" }}
+                style={{
+                  flexDirection: "column",
+                  alignItems: "stretch",
+                  gap: "10px",
+                }}
               >
                 <input
                   type="text"
@@ -384,20 +456,31 @@ export default function Home({ onOpenSection, onLogout }) {
                   value={settingsName}
                   onChange={(e) => setSettingsName(e.target.value)}
                 />
+
                 <input
                   type="password"
                   placeholder="New password (leave empty to keep it)"
                   value={settingsPassword}
                   onChange={(e) => setSettingsPassword(e.target.value)}
                 />
+
                 <div style={{ display: "flex", gap: "10px" }}>
-                  <button type="button" onClick={saveSettings} disabled={saving}>
+                  <button
+                    type="button"
+                    onClick={saveSettings}
+                    disabled={saving}
+                  >
                     Save
                   </button>
-                  <button type="button" onClick={() => setShowSettings(false)}>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowSettings(false)}
+                  >
                     Close
                   </button>
                 </div>
+
                 {settingsStatus && <span>{settingsStatus}</span>}
               </div>
             )}
@@ -405,6 +488,7 @@ export default function Home({ onOpenSection, onLogout }) {
             {activeMessage && (
               <div className="home-notice" role="status">
                 <span>{activeMessage}</span>
+
                 <button
                   type="button"
                   aria-label="Dismiss message"
@@ -420,6 +504,7 @@ export default function Home({ onOpenSection, onLogout }) {
             <span>
               物語は、ここから。 — Every story begins somewhere.
             </span>
+
             <span>
               MADE FOR THE LOVE OF STORIES <b>✦</b>
             </span>
@@ -453,7 +538,7 @@ export default function Home({ onOpenSection, onLogout }) {
       {activePanel && (
         <div
           className="home-modal-overlay"
-          onClick={() => setActivePanel("")}
+          onClick={closePanel}
         >
           <section
             className="home-modal"
@@ -466,67 +551,50 @@ export default function Home({ onOpenSection, onLogout }) {
               className="home-modal-close"
               type="button"
               aria-label="Close panel"
-              onClick={() => setActivePanel("")}
+              onClick={closePanel}
             >
               ×
             </button>
 
             {activePanel === "profile" && (
               <>
-                <span className="modal-eyebrow">
-                  YOUR ACCOUNT
-                </span>
-
+                <span className="modal-eyebrow">YOUR ACCOUNT</span>
                 <h2 id="home-modal-title">Your Profile</h2>
-
-                <div className="profile-avatar">J</div>
-
-                <h3>Chapterly Reader</h3>
-
+                <div className="profile-avatar">{initial}</div>
+                <h3>{storedUser?.name || "Chapterly Reader"}</h3>
                 <p className="modal-description">
                   Your personal space in the world of stories.
                 </p>
-
                 <div className="modal-info-row">
                   <span>Account type</span>
-                  <strong>Reader</strong>
+                  <strong>{storedUser?.role || "Reader"}</strong>
                 </div>
-
                 <div className="modal-info-row">
                   <span>Membership</span>
                   <strong>Chapterly member</strong>
                 </div>
-
                 <p className="modal-footnote">
-                  Your account details will appear here when
-                  authentication is connected.
+                  Your account details are shown using the locally stored
+                  account information.
                 </p>
               </>
             )}
 
             {activePanel === "wallet" && (
               <>
-                <span className="modal-eyebrow">
-                  YOUR COLLECTION
-                </span>
-
+                <span className="modal-eyebrow">YOUR COLLECTION</span>
                 <h2 id="home-modal-title">My Wallet</h2>
-
                 <div className="wallet-balance">
                   <span>CHAPTERLY CREDITS</span>
-
                   <strong>
                     0 <small>credits</small>
                   </strong>
-
                   <p>Demo balance</p>
                 </div>
-
                 <div className="modal-info-row">
                   <span>Recent transactions</span>
                   <strong>None yet</strong>
                 </div>
-
                 <p className="modal-footnote">
                   This is a demo wallet. No real payments are involved.
                 </p>
@@ -538,6 +606,3 @@ export default function Home({ onOpenSection, onLogout }) {
     </main>
   );
 }
-
-
-

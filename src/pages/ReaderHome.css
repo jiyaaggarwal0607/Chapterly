@@ -1066,3 +1066,128 @@
     font-size: 23px;
   }
 }
+
+
+.story-dialog-cover {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  object-position: center;
+  border-radius: 12px;
+  margin-bottom: 18px;
+  background: #171717;
+}
+
+.catalog-cover[style*="background-image"],
+.featured-card[style*="background-image"] {
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+}
+
+
+.catalog-cover,
+.featured-card,
+.rated-cover {
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+}
+
+.catalog-cover {
+  position: relative;
+  overflow: hidden;
+}
+
+.catalog-cover[style*="background-image"] .cover-edition,
+.catalog-cover[style*="background-image"] .cover-kanji,
+.catalog-cover[style*="background-image"] .cover-name,
+.catalog-cover[style*="background-image"] .cover-genre {
+  display: none;
+}
+
+.featured-card[style*="background-image"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.82),
+    rgba(0, 0, 0, 0.2)
+  );
+  pointer-events: none;
+}
+
+.featured-copy {
+  position: relative;
+  z-index: 1;
+}
+
+.story-dialog-cover {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  object-position: center;
+  border-radius: 12px;
+  margin-bottom: 18px;
+  background: #171717;
+}
+
+
+/* BACK BUTTON — matches the dark Shop theme */
+
+.catalog-back-button {
+  flex-shrink: 0;
+  padding: 10px 14px;
+  border: 1px solid #3A3A3A;
+  border-radius: 10px;
+  background: #202020;
+  color: #F8F4F4;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.catalog-back-button:hover {
+  background: #E63946;
+  border-color: #E63946;
+  color: #FFFFFF;
+  transform: translateY(-2px);
+}
+
+.catalog-back-button:focus-visible {
+  outline: 2px solid #FF8FA3;
+  outline-offset: 3px;
+}
+
+.catalog-back-button:active {
+  transform: translateY(0);
+}
+
+/* Keep the entire ReaderHome dark */
+.catalog-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 60% 0%, #32191E 0%, transparent 38%),
+    #121212;
+  color: #F8F4F4;
+}
+
+.catalog-navbar {
+  background: #121212;
+}
+
+@media (max-width: 560px) {
+  .catalog-back-button {
+    padding: 8px 11px;
+    font-size: 12px;
+  }
+}
