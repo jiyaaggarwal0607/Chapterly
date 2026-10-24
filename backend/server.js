@@ -20,7 +20,7 @@ app.use('/api/wishlist', require('./routes/wishlist'));
 app.use('/api/cart', require('./routes/cart'));
 app.use('/api/wallet', require('./routes/wallet'));
 app.use('/api/translation', require('./routes/translation'));
-
+app.use('/api/insights', require('./routes/insights'));
 app.listen(process.env.PORT, () =>
   console.log(`Server running on port ${process.env.PORT}`)
 );
