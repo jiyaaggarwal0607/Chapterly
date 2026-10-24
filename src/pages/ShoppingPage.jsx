@@ -1,14 +1,24 @@
-import { useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import "./ShoppingPage.css";
 import BrandLogo from "../components/BrandLogo";
-const products = [
-  { id: 1, name: "Fandom Graphic Tee", category: "Clothing", fandom: "Anime", price: 699, emoji: "👕", color: "pink", description: "An oversized tee for your everyday fandom fit." },
-  { id: 2, name: "Character Stand", category: "Collectibles", fandom: "Anime", price: 299, emoji: "🎎", color: "purple", description: "A cute display collectible for your desk." },
-  { id: 3, name: "Fandom Keychain", category: "Accessories", fandom: "Anime", price: 149, emoji: "🔑", color: "red", description: "Carry a little piece of your favourite fandom." },
-  { id: 4, name: "Manga Reading Set", category: "Collectibles", fandom: "Manga", price: 499, emoji: "📚", color: "cream", description: "A manga-inspired set for your reading corner." },
-  { id: 5, name: "Gaming Hoodie", category: "Clothing", fandom: "Gaming", price: 1199, emoji: "🎮", color: "blue", description: "A relaxed hoodie inspired by gaming culture." },
-  { id: 6, name: "Sticker Collection", category: "Accessories", fandom: "Manga", price: 199, emoji: "✨", color: "orange", description: "Decorate your laptop, journal or study space." },
-];
+import { api } from "../api";
+const COLORS = ["pink", "purple", "red", "cream", "blue", "orange"];
+
+function toProduct(p) {
+  return {
+    id: p._id,
+    name: p.name,
+    category: p.category,
+    fandom: p.fandom,
+    price: Number(p.price) || 0,
+    emoji: p.emoji || "\u{1F6CD}",
+    color: COLORS[parseInt(String(p._id).slice(-2), 16) % COLORS.length],
+    description: p.description || "",
+  };
+}
+
+const toCartItems = (c) =>
+  c.items.map((i) => ({ ...toProduct(i.product), quantity: i.quantity }));
 
 const categories = ["All", "Anime", "Manga", "Gaming"];
 const productTypes = ["All products", "Clothing", "Collectibles", "Accessories"];
@@ -27,6 +37,48 @@ export default function ShoppingPage({ onBack }) {
   const [order, setOrder] = useState(null);
   const [customer, setCustomer] = useState({ name: "", email: "", phone: "", address: "" });
   const [formError, setFormError] = useState("");
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  const priceLimit = useMemo(
+    () => Math.max(1500, Math.ceil(Math.max(0, ...products.map((p) => p.price)) / 50) * 50),
+    [products]
+  );
+
+  useEffect(() => {
+    setMaxPrice(priceLimit);
+  }, [priceLimit]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const list = await api("/products");
+        if (!cancelled) {
+          setProducts(list.map(toProduct));
+          setError("");
+        }
+      } catch (err) {
+        if (!cancelled) setError(err.message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+      try {
+        const c = await api("/cart");
+        if (!cancelled) setCart(toCartItems(c));
+        const w = await api("/wishlist");
+        if (!cancelled) setWishlist(w.map((x) => x._id));
+      } catch (err) {
+        if (!cancelled) setNotice(err.message);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filteredProducts = useMemo(() => {
     const result = products.filter((product) => {
@@ -39,26 +91,49 @@ export default function ShoppingPage({ onBack }) {
     else if (sort === "high") result.sort((a, b) => b.price - a.price);
     else if (sort === "name") result.sort((a, b) => a.name.localeCompare(b.name));
     return result;
-  }, [search, category, productType, sort, maxPrice]);
+  }, [products, search, category, productType, sort, maxPrice]);
 
-  const addToCart = (product) => {
-    setCart((current) => {
-      const existing = current.find((item) => item.id === product.id);
-      return existing
-        ? current.map((item) => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item)
-        : [...current, { ...product, quantity: 1 }];
-    });
+  const applyCart = (c) => setCart(toCartItems(c));
+
+  const addToCart = async (product) => {
     setOrder(null);
+    setNotice("");
+    try {
+      applyCart(await api("/cart", { method: "POST", body: { productId: product.id, quantity: 1 } }));
+    } catch (err) {
+      setNotice(err.message);
+    }
   };
 
-  const changeQuantity = (id, change) => {
-    setCart((current) => current
-      .map((item) => item.id === id ? { ...item, quantity: item.quantity + change } : item)
-      .filter((item) => item.quantity > 0));
+  const changeQuantity = async (id, change) => {
+    const item = cart.find((i) => i.id === id);
+    if (!item) return;
+    setNotice("");
+    try {
+      applyCart(await api("/cart/" + id, { method: "PUT", body: { quantity: item.quantity + change } }));
+    } catch (err) {
+      setNotice(err.message);
+    }
   };
 
-  const toggleWishlist = (id) => {
-    setWishlist((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  const removeFromCart = async (id) => {
+    setNotice("");
+    try {
+      applyCart(await api("/cart/" + id, { method: "DELETE" }));
+    } catch (err) {
+      setNotice(err.message);
+    }
+  };
+
+  const toggleWishlist = async (id) => {
+    const saved = wishlist.includes(id);
+    setNotice("");
+    try {
+      await api("/wishlist/" + id, { method: saved ? "DELETE" : "POST" });
+      setWishlist(saved ? wishlist.filter((i) => i !== id) : [...wishlist, id]);
+    } catch (err) {
+      setNotice(err.message);
+    }
   };
 
   const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
@@ -77,6 +152,7 @@ export default function ShoppingPage({ onBack }) {
     const orderNumber = `CH-${Date.now().toString().slice(-6)}`;
     setOrder({ number: orderNumber, customer: { ...customer }, items: cart.map((item) => ({ ...item })), total: cartTotal });
     setCart([]);
+    api("/cart", { method: "DELETE" }).catch((err) => setNotice(err.message));
     setCheckoutOpen(false);
     setCartOpen(false);
     setFormError("");
@@ -119,7 +195,7 @@ export default function ShoppingPage({ onBack }) {
                     <button aria-label={`Increase ${item.name} quantity`} onClick={() => changeQuantity(item.id, 1)}>+</button>
                   </div>
                   <strong>{money(item.price * item.quantity)}</strong>
-                  <button aria-label={`Remove ${item.name}`} onClick={() => setCart((current) => current.filter((product) => product.id !== item.id))}>✕</button>
+                  <button aria-label={`Remove ${item.name}`} onClick={() => removeFromCart(item.id)}>✕</button>
                 </div>
               ))}
               <div className="shop-cart-total"><span>Total</span><strong>{money(cartTotal)}</strong></div>
@@ -198,19 +274,22 @@ export default function ShoppingPage({ onBack }) {
         <div className="shop-section-heading"><div><p className="shop-eyebrow">THE GOOD STUFF</p><h2>Explore merchandise<span>.</span></h2></div><p>{filteredProducts.length} products to explore</p></div>
         <div className="shop-content-layout">
           <aside className="shop-filters">
-            <div className="shop-filter-heading"><h3>Filters</h3><button onClick={() => { setSearch(""); setCategory("All"); setProductType("All products"); setMaxPrice(1500); setSort("featured"); }}>Reset</button></div>
+            <div className="shop-filter-heading"><h3>Filters</h3><button onClick={() => { setSearch(""); setCategory("All"); setProductType("All products"); setMaxPrice(priceLimit); setSort("featured"); }}>Reset</button></div>
             <label className="shop-search-label" htmlFor="shop-search">Search</label>
             <input id="shop-search" className="shop-search-input" placeholder="Find your favourite..." value={search} onChange={(event) => setSearch(event.target.value)} />
             <h4>Product type</h4>
             {productTypes.map((type) => <label className="shop-radio-label" key={type}><input type="radio" name="productType" checked={productType === type} onChange={() => setProductType(type)} />{type}</label>)}
             <div className="shop-price-heading"><h4>Maximum price</h4><span>₹{maxPrice}</span></div>
-            <input className="shop-price-slider" type="range" min="100" max="1500" step="50" value={maxPrice} onChange={(event) => setMaxPrice(Number(event.target.value))} aria-label="Maximum product price" />
-            <div className="shop-price-range"><span>₹100</span><span>₹1,500</span></div>
+            <input className="shop-price-slider" type="range" min="100" max={priceLimit} step="50" value={maxPrice} onChange={(event) => setMaxPrice(Number(event.target.value))} aria-label="Maximum product price" />
+            <div className="shop-price-range"><span>₹100</span><span>{money(priceLimit)}</span></div>
           </aside>
           <div className="shop-product-area">
             <div className="shop-toolbar"><span>Showing {filteredProducts.length} items</span><label>Sort by{" "}
               <select value={sort} onChange={(event) => setSort(event.target.value)}><option value="featured">Featured</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option><option value="name">Name</option></select>
             </label></div>
+            {loading && <p className="shop-checkout-disclaimer">Loading products...</p>}
+            {error && <p className="shop-form-error" role="alert">{error}</p>}
+            {notice && <p className="shop-form-error" role="alert">{notice}</p>}
             <div className="shop-product-grid">
               {filteredProducts.map((product) => (
                 <article className="shop-product-card" key={product.id}>
@@ -224,7 +303,7 @@ export default function ShoppingPage({ onBack }) {
                   </div>
                 </article>
               ))}
-              {filteredProducts.length === 0 && <div className="shop-empty-state"><span>🔎</span><h3>No products found</h3><p>Try another search or reset your filters.</p></div>}
+              {!loading && !error && filteredProducts.length === 0 && <div className="shop-empty-state"><span>🔎</span><h3>No products found</h3><p>Try another search or reset your filters.</p></div>}
             </div>
           </div>
         </div>
@@ -244,3 +323,4 @@ export default function ShoppingPage({ onBack }) {
     </main>
   );
 }
+

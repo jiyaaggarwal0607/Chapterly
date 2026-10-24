@@ -1,7 +1,8 @@
-
+﻿
 import { useEffect, useState } from "react";
 import "./Home.css";
 import BrandLogo from "../components/BrandLogo";
+import { api } from "../api";
 const sections = [
   {
     id: "manga",
@@ -46,6 +47,112 @@ export default function Home({ onOpenSection, onLogout }) {
   const [showWelcome, setShowWelcome] = useState(true);
   const [activeMessage, setActiveMessage] = useState("");
 
+  const storedUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("user"));
+    } catch {
+      return null;
+    }
+  })();
+  const initial = (storedUser?.name || "?").trim().charAt(0).toUpperCase();
+
+  const [showSettings, setShowSettings] = useState(false);
+  const [showWallet, setShowWallet] = useState(false);
+  const [walletData, setWalletData] = useState(null);
+  const [walletStatus, setWalletStatus] = useState("");
+  const [topUp, setTopUp] = useState("");
+  const [walletBusy, setWalletBusy] = useState(false);
+
+  async function loadWallet() {
+    setWalletStatus("Loading wallet...");
+    try {
+      const data = await api("/wallet");
+      setWalletData(data);
+      setWalletStatus("");
+    } catch (err) {
+      setWalletStatus(err.message);
+    }
+  }
+
+  function openWallet() {
+    setActiveMessage("");
+    setShowSettings(false);
+    setShowWallet(true);
+    setTopUp("");
+    loadWallet();
+  }
+
+  async function addMoney() {
+    const amount = Number(topUp);
+    if (!Number.isFinite(amount) || amount < 1 || amount > 50000) {
+      setWalletStatus("Enter an amount between 1 and 50000.");
+      return;
+    }
+    setWalletBusy(true);
+    setWalletStatus("Adding money...");
+    try {
+      await api("/wallet/add", { method: "POST", body: { amount } });
+      setTopUp("");
+      await loadWallet();
+    } catch (err) {
+      setWalletStatus(err.message);
+    } finally {
+      setWalletBusy(false);
+    }
+  }
+  const [settingsName, setSettingsName] = useState("");
+  const [settingsPassword, setSettingsPassword] = useState("");
+  const [settingsStatus, setSettingsStatus] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  function openSettings() {
+    setActiveMessage("");
+    setSettingsName(storedUser?.name || "");
+    setSettingsPassword("");
+    setSettingsStatus("");
+    setShowSettings(true);
+    setShowWallet(false);
+  }
+
+  async function saveSettings() {
+    const body = {};
+    if (settingsName.trim()) body.name = settingsName.trim();
+    if (settingsPassword) {
+      if (settingsPassword.length < 6) {
+        setSettingsStatus("Password must be at least 6 characters.");
+        return;
+      }
+      body.password = settingsPassword;
+    }
+    if (!Object.keys(body).length) {
+      setSettingsStatus("Nothing to save.");
+      return;
+    }
+    setSaving(true);
+    setSettingsStatus("Saving...");
+    try {
+      const updated = await api("/users/me", { method: "PUT", body });
+      const newName = updated?.name || body.name || storedUser?.name;
+      localStorage.setItem("user", JSON.stringify({ ...storedUser, name: newName }));
+      setSettingsPassword("");
+      setSettingsStatus("Saved.");
+    } catch (err) {
+      setSettingsStatus(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function showProfile() {
+    setActiveMessage("Loading your profile...");
+    try {
+      const me = await api("/users/me");
+      setActiveMessage(`${me.name} · ${me.email} · ${me.role}`);
+    } catch (err) {
+      setActiveMessage(err.message);
+    }
+  }
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setShowWelcome(false);
@@ -79,9 +186,9 @@ export default function Home({ onOpenSection, onLogout }) {
             className="profile-button"
             type="button"
             aria-label="Profile"
-            onClick={() => setActiveMessage("Your profile will appear here.")}
+            onClick={showProfile}
           >
-            <span>J</span>
+            <span>{initial}</span>
           </button>
         </div>
       </header>
@@ -94,7 +201,7 @@ export default function Home({ onOpenSection, onLogout }) {
             <button
               className="sidebar-link"
               type="button"
-              onClick={() => setActiveMessage("Your profile will appear here.")}
+              onClick={showProfile}
             >
               <span className="sidebar-icon">◎</span>
               <span>Profile</span>
@@ -103,7 +210,7 @@ export default function Home({ onOpenSection, onLogout }) {
             <button
               className="sidebar-link"
               type="button"
-              onClick={() => setActiveMessage("Your wallet will appear here.")}
+              onClick={openWallet}
             >
               <span className="sidebar-icon">◇</span>
               <span>Wallet</span>
@@ -112,7 +219,7 @@ export default function Home({ onOpenSection, onLogout }) {
             <button
               className="sidebar-link"
               type="button"
-              onClick={() => setActiveMessage("Your settings will appear here.")}
+              onClick={openSettings}
             >
               <span className="sidebar-icon">⚙</span>
               <span>Settings</span>
@@ -186,6 +293,82 @@ export default function Home({ onOpenSection, onLogout }) {
               ))}
             </div>
 
+            {showWallet && (
+              <div
+                className="home-notice"
+                role="status"
+                style={{ flexDirection: "column", alignItems: "stretch", gap: "10px" }}
+              >
+                <strong>Wallet balance: ₹{walletData ? walletData.balance : "..."}</strong>
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <input
+                    type="number"
+                    min="1"
+                    max="50000"
+                    placeholder="Amount to add (₹)"
+                    value={topUp}
+                    onChange={(e) => setTopUp(e.target.value)}
+                  />
+                  <button type="button" onClick={addMoney} disabled={walletBusy}>
+                    Add money
+                  </button>
+                  <button type="button" onClick={() => setShowWallet(false)}>
+                    Close
+                  </button>
+                </div>
+                {walletStatus && <span>{walletStatus}</span>}
+                {walletData && walletData.transactions.length === 0 && (
+                  <span>No transactions yet.</span>
+                )}
+                <div style={{ maxHeight: "200px", overflowY: "auto" }}>
+                  {walletData &&
+                    walletData.transactions.map((t) => (
+                      <div
+                        key={t._id}
+                        style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}
+                      >
+                        <span>
+                          {t.note || t.type} · {new Date(t.createdAt).toLocaleDateString()}
+                        </span>
+                        <span>
+                          {t.type === "credit" ? "+" : "-"}₹{t.amount}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {showSettings && (
+              <div
+                className="home-notice"
+                role="status"
+                style={{ flexDirection: "column", alignItems: "stretch", gap: "10px" }}
+              >
+                <input
+                  type="text"
+                  placeholder="Name"
+                  value={settingsName}
+                  onChange={(e) => setSettingsName(e.target.value)}
+                />
+                <input
+                  type="password"
+                  placeholder="New password (leave empty to keep it)"
+                  value={settingsPassword}
+                  onChange={(e) => setSettingsPassword(e.target.value)}
+                />
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button type="button" onClick={saveSettings} disabled={saving}>
+                    Save
+                  </button>
+                  <button type="button" onClick={() => setShowSettings(false)}>
+                    Close
+                  </button>
+                </div>
+                {settingsStatus && <span>{settingsStatus}</span>}
+              </div>
+            )}
+
             {activeMessage && (
               <div className="home-notice" role="status">
                 <span>{activeMessage}</span>
@@ -228,3 +411,6 @@ export default function Home({ onOpenSection, onLogout }) {
     </main>
   );
 }
+
+
+
