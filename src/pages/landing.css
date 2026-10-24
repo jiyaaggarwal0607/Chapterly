@@ -1,0 +1,325 @@
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap');
+
+:root {
+  font-family: 'DM Sans', sans-serif;
+  color: #F8F4F4;
+  background: #121212;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.landing,
+.auth-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  position: relative;
+  overflow: hidden;
+  background: #121212;
+  color: #F8F4F4;
+}
+
+
+.background-art {
+  position: absolute;
+  inset: -30px;
+  background-image: url("/manga-wall.jpeg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transform: scale(1.04);
+}
+
+.background-shade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      rgba(18, 18, 18, 0.48),
+      rgba(18, 18, 18, 0.65)
+    );
+}
+
+.navbar,
+.hero,
+.landing-footer {
+  position: relative;
+  z-index: 1;
+}
+
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 26px 7%;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -1.5px;
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: #E63946;
+  color: #F8F4F4;
+  font-size: 25px;
+}
+
+.brand-dot,
+.hero h1 span {
+  color: #FF8FA3;
+}
+
+.tagline,
+.eyebrow,
+.landing-footer {
+  font-size: 10px;
+  letter-spacing: 2px;
+  font-weight: 600;
+}
+
+.tagline {
+  color: #F8F4F4a6;
+}
+
+.hero {
+  width: min(780px, 90%);
+  margin: 45px auto 35px;
+  text-align: center;
+}
+
+.eyebrow {
+  color: #FF8FA3;
+}
+
+.hero h1 {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: clamp(42px, 7vw, 72px);
+  line-height: 1.08;
+  letter-spacing: -3px;
+  margin: 18px 0;
+}
+
+.subtitle {
+  color: #F8F4F4bd;
+  line-height: 1.8;
+  font-size: 15px;
+}
+
+.role-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 32px;
+  text-align: left;
+}
+
+.role-card {
+  padding: 24px;
+  border: 1px solid #F8F4F430;
+  border-radius: 16px;
+  background: #121212c9;
+  backdrop-filter: blur(16px);
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.role-card:hover {
+  border-color: #FF8FA3;
+  transform: translateY(-3px);
+}
+
+.role-icon {
+  color: #FF8FA3;
+  font-size: 27px;
+}
+
+.role-card h2 {
+  font-size: 19px;
+  margin: 12px 0 8px;
+}
+
+.role-card p {
+  min-height: 40px;
+  color: #F8F4F4ad;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.primary-btn {
+  width: 100%;
+  padding: 13px;
+  border: none;
+  border-radius: 7px;
+  color: #F8F4F4;
+  background: #E63946;
+  font-weight: 700;
+}
+
+.primary-btn:hover {
+  background: #c92d3a;
+}
+
+.text-btn {
+  display: block;
+  margin: 12px auto 0;
+  padding: 5px;
+  border: none;
+  background: transparent;
+  color: #FF8FA3;
+  font-size: 12px;
+}
+
+.landing-footer {
+  position: relative;
+  z-index: 1;
+  padding: 20px;
+  text-align: center;
+  color: #F8F4F46b;
+}
+
+.landing-footer span {
+  color: #E63946;
+  padding: 0 8px;
+}
+
+/* Login and signup screen */
+
+.auth-page {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(ellipse at top, #E6394625, transparent 60%),
+    #121212;
+}
+
+.auth-card {
+  width: min(400px, 100%);
+  padding: 32px;
+  border: 1px solid #F8F4F430;
+  border-radius: 18px;
+  background: #1a1a1a;
+}
+
+.auth-logo {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 32px;
+}
+
+.auth-logo span {
+  color: #E63946;
+}
+
+.auth-card > p {
+  color: #F8F4F4ad;
+}
+
+.auth-card input {
+  width: 100%;
+  padding: 14px;
+  margin: 8px 0;
+  border: 1px solid #ffffff30;
+  border-radius: 8px;
+  background: #121212;
+  color: #F8F4F4;
+  outline: none;
+}
+
+.auth-card input:focus {
+  border-color: #FF8FA3;
+}
+
+.auth-card .primary-btn {
+  margin-top: 12px;
+}
+
+.switch-mode {
+  text-align: center;
+  font-size: 13px;
+  margin-top: 22px;
+}
+
+.switch-mode button,
+.back-btn {
+  border: none;
+  background: transparent;
+  color: #FF8FA3;
+}
+
+.back-btn {
+  position: absolute;
+  top: 25px;
+  left: 25px;
+}
+
+
+@media (max-width: 560px) {
+  .navbar {
+    padding: 22px 5%;
+  }
+
+  .brand {
+    font-size: 24px;
+  }
+
+  .tagline {
+    max-width: 110px;
+    text-align: right;
+    line-height: 1.6;
+    font-size: 8px;
+  }
+
+  .hero {
+    margin-top: 35px;
+  }
+
+  .hero h1 {
+    letter-spacing: -1.5px;
+  }
+
+  .role-options {
+    grid-template-columns: 1fr;
+  }
+
+  .role-card p {
+    min-height: auto;
+  }
+}
+
+
+/* Company button variation */
+.role-card:last-child .primary-btn {
+  background: transparent;
+  border: 1px solid #FF8FA3;
+  color: #FF8FA3;
+}
+
+.role-card:last-child .primary-btn:hover {
+  background: #FF8FA318;
+}
