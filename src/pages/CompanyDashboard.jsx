@@ -1,12 +1,9 @@
-
+﻿
+import { useEffect, useState } from "react";
 import "./CompanyDashboard.css";
 import BrandLogo from "../components/BrandLogo";
-const genres = [
-  { name: "Fantasy", percent: 86 },
-  { name: "Romance", percent: 74 },
-  { name: "Action", percent: 68 },
-  { name: "Slice of Life", percent: 52 },
-];
+import { api } from "../api";
+
 
 const opportunities = [
   {
@@ -33,6 +30,38 @@ const opportunities = [
 ];
 
 export default function CompanyDashboard({ onBack, onLogout }) {
+  const [genres, setGenres] = useState([]);
+  const [genreCount, setGenreCount] = useState(0);
+  const [favourites, setFavourites] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    api("/insights")
+      .then((r) => {
+        if (cancelled) return;
+        const rows = r.viewsByGenre || [];
+        const max = Math.max(1, ...rows.map((g) => g.views || 0));
+        setGenres(
+          rows.slice(0, 4).map((g) => ({
+            name: g.genre,
+            percent: Math.round(((g.views || 0) / max) * 100),
+          }))
+        );
+        setGenreCount(rows.length);
+        setFavourites((r.favouritesByGenre || []).reduce((t, g) => t + (g.favourites || 0), 0));
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   return (
     <main className="company-dashboard">
       <aside className="company-sidebar">
@@ -78,7 +107,7 @@ export default function CompanyDashboard({ onBack, onLogout }) {
           <button className="company-back" onClick={onBack}>
             ← Back to Chapterly
           </button>
-          <span className="demo-badge">DEMO DATA</span>
+          <span className="demo-badge">LIVE DATA</span>
         </header>
 
         <section className="company-welcome">
@@ -92,21 +121,20 @@ export default function CompanyDashboard({ onBack, onLogout }) {
 
         <div className="company-notice">
           <span>✦</span>
-          These are illustrative sample figures for the hackathon demo,
-          not real platform analytics.
+          These figures come from Chapterly platform data.
         </div>
 
         <section className="company-metrics">
           <article className="metric-card">
-            <span className="metric-label">Reader interest index</span>
-            <strong>78<span>/100</span></strong>
-            <p>Illustrative engagement score</p>
+            <span className="metric-label">Reader favourites</span>
+            <strong>{favourites}</strong>
+            <p>Favourites saved by readers</p>
           </article>
 
           <article className="metric-card">
             <span className="metric-label">Genres analysed</span>
-            <strong>04</strong>
-            <p>Sample genre categories</p>
+            <strong>{String(genreCount).padStart(2, "0")}</strong>
+            <p>Genres with reader views</p>
           </article>
 
           <article className="metric-card">
@@ -122,10 +150,12 @@ export default function CompanyDashboard({ onBack, onLogout }) {
               <p className="eyebrow">AUDIENCE INTELLIGENCE</p>
               <h2>Genre interest</h2>
             </div>
-            <span className="section-note">Sample index / 100</span>
+            <span className="section-note">Index / 100</span>
           </div>
 
           <div className="genre-panel">
+            {loading && <p className="chart-caption">Loading insights...</p>}
+            {error && <p className="chart-caption" role="alert">{error}</p>}
             {genres.map((genre) => (
               <div className="genre-row" key={genre.name}>
                 <div className="genre-info">
@@ -141,8 +171,7 @@ export default function CompanyDashboard({ onBack, onLogout }) {
               </div>
             ))}
             <p className="chart-caption">
-              Fictional demo scores used to demonstrate how audience
-              preferences could be compared.
+              Relative views per genre (top genre = 100).
             </p>
           </div>
         </section>
@@ -180,3 +209,4 @@ export default function CompanyDashboard({ onBack, onLogout }) {
     </main>
   );
 }
+

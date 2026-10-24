@@ -1,57 +1,35 @@
-
+﻿
 import { useEffect, useMemo, useState } from "react";
 import "./TranslatorHub.css";
 import BrandLogo from "../components/BrandLogo";
-const opportunities = [
-  {
-    id: 1,
-    title: "Manga Chapter Localization",
-    type: "Manga",
-    from: "Japanese",
-    to: "English",
-    level: "Intermediate",
-    payment: "Paid opportunity",
-    description:
-      "Help adapt dialogue and expressions for Indian readers while preserving the original tone.",
-    tag: "Popular",
-  },
-  {
-    id: 2,
-    title: "Manga Translation — Hindi",
-    type: "Manga",
-    from: "Japanese",
-    to: "Hindi",
-    level: "Beginner friendly",
-    payment: "Paid opportunity",
-    description:
-      "Help make Japanese stories accessible to Hindi-speaking manga fans.",
-    tag: "New",
-  },
-  {
-    id: 3,
-    title: "Cultural Context Review",
-    type: "Review",
-    from: "Japanese",
-    to: "English",
-    level: "Intermediate",
-    payment: "Paid opportunity",
-    description:
-      "Review names, cultural references and expressions for a natural reading experience.",
-    tag: "Review",
-  },
-  {
-    id: 4,
-    title: "Dialogue Proofreading",
-    type: "Proofreading",
-    from: "English",
-    to: "Hindi",
-    level: "Beginner friendly",
-    payment: "Paid opportunity",
-    description:
-      "Check translated dialogue for clarity, consistency and readability.",
-    tag: "Flexible",
-  },
-];
+import { api } from "../api";
+function toTask(p) {
+  return {
+    id: p._id,
+    title: p.title,
+    type: p.taskType,
+    from: p.fromLanguage,
+    to: p.toLanguage,
+    level: p.level,
+    payment: p.paid ? "Paid opportunity" : "Unpaid opportunity",
+    description: p.description || "",
+    tag: p.badge || "Open",
+  };
+}
+
+const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : "");
+
+function toApplication(a) {
+  return {
+    key: a._id,
+    id: "APP-" + String(a._id).slice(-6).toUpperCase(),
+    title: a.project ? a.project.title : "General Translator Application",
+    languages: a.languagePair || "",
+    level: a.experienceLevel || "",
+    status: cap(a.status),
+    submittedAt: new Date(a.createdAt).toLocaleDateString("en-IN"),
+  };
+}
 
 export default function TranslatorHub({ onBack }) {
   const [language, setLanguage] = useState("All languages");
@@ -59,26 +37,44 @@ export default function TranslatorHub({ onBack }) {
   const [search, setSearch] = useState("");
   const [selectedTask, setSelectedTask] = useState(null);
   const [submitted, setSubmitted] = useState(false);
-  const [applications, setApplications] = useState(() => {
-  try {
-    return JSON.parse(
-      localStorage.getItem("chapterlyApplications") || "[]"
-    );
-  } catch {
-    return [];
-  }
-});
+  const [opportunities, setOpportunities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [applications, setApplications] = useState([]);
+  const [formError, setFormError] = useState("");
+  const [sending, setSending] = useState(false);
+  const [lastResult, setLastResult] = useState(null);
 
-useEffect(() => {
-  try {
-    localStorage.setItem(
-      "chapterlyApplications",
-      JSON.stringify(applications)
-    );
-  } catch {
-    // App still works if browser storage is unavailable.
+  async function loadApplications() {
+    try {
+      const list = await api("/translation/applications");
+      setApplications(list.map(toApplication));
+    } catch (err) {
+      setFormError(err.message);
+    }
   }
-}, [applications]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const list = await api("/translation/projects");
+        if (!cancelled) {
+          setOpportunities(list.map(toTask));
+          setError("");
+        }
+      } catch (err) {
+        if (!cancelled) setError(err.message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+      loadApplications();
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -104,32 +100,55 @@ useEffect(() => {
 
       return matchesSearch && matchesLanguage && matchesType;
     });
-  }, [search, language, taskType]);
+  }, [opportunities, search, language, taskType]);
 
   const updateForm = (event) => {
     setForm({ ...form, [event.target.name]: event.target.value });
   };
 
-  const handleApply = (event) => {
-  event.preventDefault();
-
-  const application = {
-    id: `APP-${Date.now().toString().slice(-6)}`,
-    taskId: selectedTask?.id ?? null,
-    title: selectedTask?.title ?? "General Translator Application",
-    languages: form.languages,
-    level: form.level,
-    status: "Submitted",
-    submittedAt: new Date().toLocaleDateString("en-IN"),
+  const handleApply = async (event) => {
+    event.preventDefault();
+    setFormError("");
+    setSending(true);
+    try {
+      if (selectedTask) {
+        const created = await api("/translation/applications", {
+          method: "POST",
+          body: {
+            projectId: selectedTask.id,
+            fullName: form.name.trim(),
+            email: form.email.trim(),
+            languagePair: form.languages,
+            experienceLevel: form.level,
+            portfolioLink: form.portfolio.trim(),
+            whyJoin: form.motivation.trim(),
+          },
+        });
+        setLastResult({
+          id: "APP-" + String(created._id).slice(-6).toUpperCase(),
+          title: selectedTask.title,
+          status: cap(created.status) || "Pending",
+        });
+      } else {
+        await api("/translation/profile", {
+          method: "PUT",
+          body: {
+            languagePairs: [form.languages],
+            experienceLevel: form.level,
+            bio: form.motivation.trim(),
+            portfolioLink: form.portfolio.trim(),
+          },
+        });
+        setLastResult({ id: "PROFILE", title: "Translator profile", status: "Saved" });
+      }
+      setSubmitted(true);
+      await loadApplications();
+    } catch (err) {
+      setFormError(err.message);
+    } finally {
+      setSending(false);
+    }
   };
-
-  setApplications((current) => [
-    application,
-    ...current,
-  ]);
-
-  setSubmitted(true);
-};
   const startApplication = (task) => {
     setSelectedTask(task);
     setSubmitted(false);
@@ -315,7 +334,9 @@ useEffect(() => {
           ))}
         </div>
 
-        {filteredTasks.length === 0 && (
+        {loading && <p className="translator-demo-note">Loading opportunities...</p>}
+        {error && <p className="translator-demo-note" role="alert">{error}</p>}
+        {!loading && !error && filteredTasks.length === 0 && (
           <div className="translator-empty">
             <span>⌕</span>
             <h3>No matching opportunities</h3>
@@ -376,7 +397,7 @@ useEffect(() => {
       {applications.map((application) => (
         <article
           className="translator-task-card"
-          key={application.id}
+          key={application.key}
         >
           <div className="translator-task-top">
             <span className="translator-task-symbol">文</span>
@@ -469,23 +490,23 @@ useEffect(() => {
   <h3>Application submitted!</h3>
 
   <p>
-    Your demo application has been recorded on this browser.
+    Your application has been saved.
   </p>
 
   <div className="translator-application-result">
     <p>
       <strong>Application ID:</strong>{" "}
-      {applications[0]?.id}
+      {lastResult?.id}
     </p>
 
     <p>
       <strong>Project:</strong>{" "}
-      {applications[0]?.title}
+      {lastResult?.title}
     </p>
 
     <p>
       <strong>Status:</strong>{" "}
-      {applications[0]?.status}
+      {lastResult?.status}
     </p>
   </div>
 
@@ -576,8 +597,9 @@ useEffect(() => {
                 />
               </label>
 
-              <button className="translator-submit-button" type="submit">
-                Preview application ↗
+              {formError && <p className="translator-privacy-note" role="alert">{formError}</p>}
+              <button className="translator-submit-button" type="submit" disabled={sending}>
+                Submit application ↗
               </button>
               <p className="translator-privacy-note">
                 Demo only. Do not enter sensitive personal information.
@@ -599,3 +621,4 @@ useEffect(() => {
     </main>
   );
 }
+
