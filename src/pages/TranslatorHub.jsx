@@ -194,10 +194,6 @@ useEffect(() => {
 
           <div className="translator-hero-note">
             <span>日本語</span>
-            <span>→</span>
-            <span>English</span>
-            <span>·</span>
-            <span>Hindi</span>
           </div>
         </div>
 
@@ -536,6 +532,8 @@ useEffect(() => {
                   <option>Japanese to English</option>
                   <option>Japanese to Hindi</option>
                   <option>English to Hindi</option>
+                  <option>Japanese to Tamil</option>
+                  <option>Japanese to Punjabi</option>
                   <option>Other</option>
                 </select>
               </label>

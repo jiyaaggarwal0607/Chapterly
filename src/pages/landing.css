@@ -1,6 +1,5 @@
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap');
-
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
 :root {
   font-family: 'DM Sans', sans-serif;
   color: #F8F4F4;
@@ -91,9 +90,6 @@ button {
 }
 
 .brand-dot,
-.hero h1 span {
-  color: #FF8FA3;
-}
 
 .tagline,
 .eyebrow,
@@ -118,12 +114,16 @@ button {
 }
 
 .hero h1 {
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
-  font-size: clamp(42px, 7vw, 72px);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: clamp(44px, 7vw, 76px);
   line-height: 1.08;
-  letter-spacing: -3px;
+  letter-spacing: -2px;
   margin: 18px 0;
+}
+
+.hero h1 span {
+  color: #FF8FA3;
 }
 
 .subtitle {

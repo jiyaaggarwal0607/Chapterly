@@ -1,182 +1,82 @@
+import { useEffect, useState } from 'react';
+import { api } from '../api'; // path badal lo agar api.js kahin aur hai
 
-import "./CompanyDashboard.css";
-import BrandLogo from "../components/BrandLogo";
-const genres = [
-  { name: "Fantasy", percent: 86 },
-  { name: "Romance", percent: 74 },
-  { name: "Action", percent: 68 },
-  { name: "Slice of Life", percent: 52 },
-];
+const C = {
+  bg: '#141414', card: '#1c1c1c', border: '#2a2a2a',
+  text: '#f5f5f5', muted: '#9a9a9a', accent: '#e63946', pink: '#ff8fa3',
+};
 
-const opportunities = [
-  {
-    number: "01",
-    title: "Explore fantasy releases",
-    description:
-      "Test a fantasy title with a small group of readers before a wider launch.",
-    tag: "CONTENT",
-  },
-  {
-    number: "02",
-    title: "Connect with translators",
-    description:
-      "Explore translation partnerships to make more stories accessible to Indian readers.",
-    tag: "LOCALIZATION",
-  },
-  {
-    number: "03",
-    title: "Test merchandise interest",
-    description:
-      "Try a limited merchandise collection inspired by popular story genres.",
-    tag: "COMMERCE",
-  },
-];
+// sabse bada value jis jis ka hai (tie ho to dono dikhte hain)
+function topNames(list, valueKey, nameKey) {
+  if (!list || !list.length) return '—';
+  const max = Math.max(...list.map((x) => x[valueKey]));
+  return list.filter((x) => x[valueKey] === max).map((x) => x[nameKey]).join(' / ');
+}
 
-export default function CompanyDashboard({ onBack, onLogout }) {
+function StatCard({ label, value }) {
   return (
-    <main className="company-dashboard">
-      <aside className="company-sidebar">
-        <BrandLogo onClick={onBack} />
+    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20 }}>
+      <div style={{ fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', color: C.muted }}>{label}</div>
+      <div style={{ fontSize: 24, fontWeight: 700, color: C.pink, marginTop: 8 }}>{value}</div>
+    </div>
+  );
+}
 
-        <p className="sidebar-label">WORKSPACE</p>
-
-        <button className="sidebar-link active">
-          <span>◫</span> Overview
-        </button>
-        <button
-          className="sidebar-link"
-          onClick={() =>
-            document
-              .getElementById("company-genres")
-              ?.scrollIntoView({ behavior: "smooth" })
-          }
-        >
-          <span>◈</span> Audience insights
-        </button>
-        <button
-          className="sidebar-link"
-          onClick={() =>
-            document
-              .getElementById("company-opportunities")
-              ?.scrollIntoView({ behavior: "smooth" })
-          }
-        >
-          <span>✳</span> Opportunities
-        </button>
-
-        <div className="sidebar-bottom">
-          <p>COMPANY PORTAL</p>
-          <span>Demo workspace</span>
-          <button className="sidebar-link" onClick={onLogout}>
-            ↪ Sign out
-          </button>
+function BarChart({ title, data, nameKey, valueKey, unit }) {
+  const max = Math.max(1, ...data.map((d) => d[valueKey]));
+  return (
+    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20 }}>
+      <h3 style={{ margin: '0 0 16px', color: C.text, fontSize: 16 }}>{title}</h3>
+      {data.length === 0 && <p style={{ color: C.muted }}>No data yet</p>}
+      {data.map((d) => (
+        <div key={d[nameKey]} style={{ marginBottom: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: C.text, marginBottom: 4 }}>
+            <span>{d[nameKey]}</span>
+            <span style={{ color: C.muted }}>{d[valueKey].toLocaleString('en-IN')} {unit}</span>
+          </div>
+          <div style={{ background: C.border, borderRadius: 6, height: 8 }}>
+            <div style={{ width: `${(d[valueKey] / max) * 100}%`, background: C.accent, height: 8, borderRadius: 6 }} />
+          </div>
         </div>
-      </aside>
+      ))}
+    </div>
+  );
+}
 
-      <section className="company-main">
-        <header className="company-topbar">
-          <button className="company-back" onClick={onBack}>
-            ← Back to Chapterly
-          </button>
-          <span className="demo-badge">DEMO DATA</span>
-        </header>
+export default function CompanyDashboard() {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState('');
 
-        <section className="company-welcome">
-          <p className="eyebrow">COMPANY OVERVIEW / 01</p>
-          <h1>Stories meet <span>strategy.</span></h1>
-          <p>
-            Explore audience trends and discover new opportunities in
-            India's manga market.
-          </p>
-        </section>
+  useEffect(() => {
+    api('/insights').then(setData).catch((e) => setError(e.message));
+  }, []);
 
-        <div className="company-notice">
-          <span>✦</span>
-          These are illustrative sample figures for the hackathon demo,
-          not real platform analytics.
-        </div>
+  const page = { background: C.bg, minHeight: '100vh', padding: 32, color: C.text };
 
-        <section className="company-metrics">
-          <article className="metric-card">
-            <span className="metric-label">Reader interest index</span>
-            <strong>78<span>/100</span></strong>
-            <p>Illustrative engagement score</p>
-          </article>
+  if (error) return <div style={page}><p style={{ color: C.accent }}>{error}</p></div>;
+  if (!data) return <div style={page}><p style={{ color: C.muted }}>Loading…</p></div>;
 
-          <article className="metric-card">
-            <span className="metric-label">Genres analysed</span>
-            <strong>04</strong>
-            <p>Sample genre categories</p>
-          </article>
+  const grid = { display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' };
 
-          <article className="metric-card">
-            <span className="metric-label">Growth opportunities</span>
-            <strong>03</strong>
-            <p>Suggested next steps</p>
-          </article>
-        </section>
+  return (
+    <div style={page}>
+      <h1 style={{ marginTop: 0 }}>Brand insights<span style={{ color: C.accent }}>.</span></h1>
 
-        <section className="company-section" id="company-genres">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">AUDIENCE INTELLIGENCE</p>
-              <h2>Genre interest</h2>
-            </div>
-            <span className="section-note">Sample index / 100</span>
-          </div>
+      <div style={{ ...grid, gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginBottom: 16 }}>
+        <StatCard label="Top genre (views)" value={topNames(data.viewsByGenre, 'views', 'genre')} />
+        <StatCard label="Top genre (favourites)" value={topNames(data.favouritesByGenre, 'favourites', 'genre')} />
+        <StatCard label="Top category (wishlist)" value={topNames(data.wishlistByCategory, 'count', 'category')} />
+        <StatCard label="Top fandom (wishlist)" value={topNames(data.wishlistByFandom, 'count', 'fandom')} />
+        <StatCard label="Top category (cart)" value={topNames(data.cartByCategory, 'quantity', 'category')} />
+      </div>
 
-          <div className="genre-panel">
-            {genres.map((genre) => (
-              <div className="genre-row" key={genre.name}>
-                <div className="genre-info">
-                  <span>{genre.name}</span>
-                  <strong>{genre.percent}</strong>
-                </div>
-                <div className="genre-track">
-                  <div
-                    className="genre-fill"
-                    style={{ width: `${genre.percent}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-            <p className="chart-caption">
-              Fictional demo scores used to demonstrate how audience
-              preferences could be compared.
-            </p>
-          </div>
-        </section>
-
-        <section
-          className="company-section"
-          id="company-opportunities"
-        >
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">RECOMMENDED NEXT STEPS</p>
-              <h2>Opportunities to explore</h2>
-            </div>
-          </div>
-
-          <div className="opportunity-list">
-            {opportunities.map((item) => (
-              <article className="opportunity-card" key={item.number}>
-                <span className="opportunity-number">{item.number}</span>
-                <div className="opportunity-content">
-                  <span className="opportunity-tag">{item.tag}</span>
-                  <h3>{item.title}</h3>
-                  <p>{item.description}</p>
-                </div>
-                <span className="opportunity-arrow">↗</span>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <footer className="company-footer">
-          CHAPTERLY❤️ TURNING FANDOM INTO OPPORTUNITY
-        </footer>
-      </section>
-    </main>
+      <div style={grid}>
+        <BarChart title="Views by genre" data={data.viewsByGenre} nameKey="genre" valueKey="views" unit="views" />
+        <BarChart title="Favourites by genre" data={data.favouritesByGenre} nameKey="genre" valueKey="favourites" unit="favs" />
+        <BarChart title="Wishlist by category" data={data.wishlistByCategory} nameKey="category" valueKey="count" unit="wishlists" />
+        <BarChart title="Wishlist by fandom" data={data.wishlistByFandom} nameKey="fandom" valueKey="count" unit="wishlists" />
+        <BarChart title="Cart quantity by category" data={data.cartByCategory} nameKey="category" valueKey="quantity" unit="in carts" />
+      </div>
+    </div>
   );
 }

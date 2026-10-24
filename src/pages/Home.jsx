@@ -31,16 +31,15 @@ const sections = [
     symbol: "訳",
     action: "Join the hub",
   },
-
-{
-  id: "insights",
-  number: "04",
-  title: "AI Insights",
-  japanese: "分析 · Analytics",
-  description: "Understand what Indian fans love.",
-  symbol: "統",
-  action: "Explore insights",
-},
+  {
+    id: "insights",
+    number: "04",
+    title: "AI Insights",
+    japanese: "分析 · Analytics",
+    description: "Understand what Indian fans love.",
+    symbol: "統",
+    action: "Explore insights",
+  },
 ];
 
 export default function Home({ onOpenSection, onLogout }) {
@@ -165,8 +164,13 @@ export default function Home({ onOpenSection, onLogout }) {
     if (onOpenSection) {
       onOpenSection(sectionId);
     } else {
+      const sectionName =
+        sectionId === "translator"
+          ? "Translator Hub"
+          : sectionId.charAt(0).toUpperCase() + sectionId.slice(1);
+
       setActiveMessage(
-        `${sectionId === "translator" ? "Translator Hub" : sectionId.charAt(0).toUpperCase() + sectionId.slice(1)} is ready to be connected.`
+        `${sectionName} is ready to be connected.`
       );
     }
   }
@@ -176,12 +180,19 @@ export default function Home({ onOpenSection, onLogout }) {
       <div className="home-atmosphere" aria-hidden="true" />
 
       <header className="home-header">
-        <a className="home-brand" href="#home" aria-label="Chapterly home">
-  <BrandLogo className="home-brand-logo" />
-</a>
+        <a
+          className="home-brand"
+          href="#home"
+          aria-label="Chapterly home"
+        >
+          <BrandLogo className="home-brand-logo" />
+        </a>
 
         <div className="header-right">
-          <span className="header-note">YOUR NEXT CHAPTER AWAITS</span>
+          <span className="header-note">
+            YOUR NEXT CHAPTER AWAITS
+          </span>
+
           <button
             className="profile-button"
             type="button"
@@ -229,7 +240,13 @@ export default function Home({ onOpenSection, onLogout }) {
           <button
             className="sidebar-link logout-link"
             type="button"
-            onClick={onLogout ?? (() => setActiveMessage("Connect this button to your logout flow."))}
+            onClick={
+              onLogout ??
+              (() =>
+                setActiveMessage(
+                  "Connect this button to your logout flow."
+                ))
+            }
           >
             <span className="sidebar-icon">↗</span>
             <span>Log out</span>
@@ -239,7 +256,7 @@ export default function Home({ onOpenSection, onLogout }) {
         <section className="home-main">
           <div className="welcome-copy">
             <span className="eyebrow">
-                ようこそ、Chapterlyへ。 — Welcome to Chapterly.
+              ようこそ、Chapterlyへ。 — Welcome to Chapterly.
             </span>
 
             <h1>
@@ -255,24 +272,40 @@ export default function Home({ onOpenSection, onLogout }) {
             </p>
           </div>
 
-          <section className="destination-section" aria-labelledby="destination-title">
+          <section
+            className="destination-section"
+            aria-labelledby="destination-title"
+          >
             <div className="section-heading">
               <div>
-                <span className="section-kicker">BEGIN YOUR JOURNEY</span>
+                <span className="section-kicker">
+                  BEGIN YOUR JOURNEY
+                </span>
                 <h2 id="destination-title">Where to today?</h2>
               </div>
+
               <span className="section-count">01 — 04</span>
             </div>
 
             <div className="destination-grid">
               {sections.map((section) => (
-                <article className="destination-card" key={section.id}>
+                <article
+                  className="destination-card"
+                  key={section.id}
+                >
                   <div className="card-topline">
-                    <span className="card-number">{section.number}</span>
-                    <span className="card-japanese">{section.japanese}</span>
+                    <span className="card-number">
+                      {section.number}
+                    </span>
+                    <span className="card-japanese">
+                      {section.japanese}
+                    </span>
                   </div>
 
-                  <div className={`card-symbol symbol-${section.id}`} aria-hidden="true">
+                  <div
+                    className={`card-symbol symbol-${section.id}`}
+                    aria-hidden="true"
+                  >
                     {section.symbol}
                   </div>
 
@@ -384,8 +417,12 @@ export default function Home({ onOpenSection, onLogout }) {
           </section>
 
           <footer className="home-footer">
-            <span>物語は、ここから。 — Every story begins somewhere.</span>
-            <span>MADE FOR THE LOVE OF STORIES <b>✦</b></span>
+            <span>
+              物語は、ここから。 — Every story begins somewhere.
+            </span>
+            <span>
+              MADE FOR THE LOVE OF STORIES <b>✦</b>
+            </span>
           </footer>
         </section>
       </div>
@@ -393,11 +430,15 @@ export default function Home({ onOpenSection, onLogout }) {
       {showWelcome && (
         <div className="welcome-toast" role="status">
           <div className="toast-symbol">章</div>
+
           <div className="toast-copy">
-            <span className="toast-japanese">ようこそ、Chapterlyへ。</span>
+            <span className="toast-japanese">
+              ようこそ、Chapterlyへ。
+            </span>
             <strong>Welcome to your next chapter.</strong>
             <span>Your little world of stories awaits.</span>
           </div>
+
           <button
             className="toast-close"
             type="button"
@@ -406,6 +447,92 @@ export default function Home({ onOpenSection, onLogout }) {
           >
             ×
           </button>
+        </div>
+      )}
+
+      {activePanel && (
+        <div
+          className="home-modal-overlay"
+          onClick={() => setActivePanel("")}
+        >
+          <section
+            className="home-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="home-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              className="home-modal-close"
+              type="button"
+              aria-label="Close panel"
+              onClick={() => setActivePanel("")}
+            >
+              ×
+            </button>
+
+            {activePanel === "profile" && (
+              <>
+                <span className="modal-eyebrow">
+                  YOUR ACCOUNT
+                </span>
+
+                <h2 id="home-modal-title">Your Profile</h2>
+
+                <div className="profile-avatar">J</div>
+
+                <h3>Chapterly Reader</h3>
+
+                <p className="modal-description">
+                  Your personal space in the world of stories.
+                </p>
+
+                <div className="modal-info-row">
+                  <span>Account type</span>
+                  <strong>Reader</strong>
+                </div>
+
+                <div className="modal-info-row">
+                  <span>Membership</span>
+                  <strong>Chapterly member</strong>
+                </div>
+
+                <p className="modal-footnote">
+                  Your account details will appear here when
+                  authentication is connected.
+                </p>
+              </>
+            )}
+
+            {activePanel === "wallet" && (
+              <>
+                <span className="modal-eyebrow">
+                  YOUR COLLECTION
+                </span>
+
+                <h2 id="home-modal-title">My Wallet</h2>
+
+                <div className="wallet-balance">
+                  <span>CHAPTERLY CREDITS</span>
+
+                  <strong>
+                    0 <small>credits</small>
+                  </strong>
+
+                  <p>Demo balance</p>
+                </div>
+
+                <div className="modal-info-row">
+                  <span>Recent transactions</span>
+                  <strong>None yet</strong>
+                </div>
+
+                <p className="modal-footnote">
+                  This is a demo wallet. No real payments are involved.
+                </p>
+              </>
+            )}
+          </section>
         </div>
       )}
     </main>
