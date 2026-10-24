@@ -4,75 +4,198 @@ import BrandLogo from "../components/BrandLogo";
 const stories = [
   {
     id: 1,
-    title: "Beyond the Horizon",
-    genre: "Adventure",
+    title: "The House Husband",
+    genre: "Slice of Life",
     status: "Ongoing",
     rating: 9.4,
     views: 24300,
     chapter: "Chapter 24",
     updatedDaysAgo: 0,
     cover: "ocean",
-    description: "A journey beyond the edge of the known world.",
+    image: "/covers/thehousehusband.jpeg",
+   
   },
   {
     id: 2,
-    title: "Petals in Winter",
-    genre: "Romance",
+    title: "Steel Ball Run",
+    genre: "Adventure",
     status: "Completed",
     rating: 9.7,
     views: 18600,
     chapter: "Chapter 18",
     updatedDaysAgo: 1,
     cover: "petals",
-    description: "Some stories bloom in the coldest seasons.",
+    image: "/covers/steelballrun.jpeg",
+    
   },
   {
     id: 3,
-    title: "The Last Shrine",
-    genre: "Fantasy",
+    title: "Spy x Family",
+    genre: "Mystery",
     status: "Ongoing",
     rating: 9.2,
     views: 32100,
     chapter: "Chapter 32",
     updatedDaysAgo: 0,
     cover: "shrine",
-    description: "An ancient secret awakens beneath the city.",
+    image: "/covers/spyxfamily.jpeg",
+    
   },
   {
     id: 4,
-    title: "Midnight Frequency",
-    genre: "Mystery",
+    title: "Sakamoto Days",
+    genre: "Slice of Life",
     status: "Ongoing",
     rating: 9.5,
     views: 12800,
     chapter: "Chapter 12",
     updatedDaysAgo: 2,
     cover: "night",
-    description: "A mysterious broadcast changes everything.",
+    image: "/covers/sakamotodays.jpeg",
+    
   },
   {
     id: 5,
-    title: "Crimson Promise",
-    genre: "Action",
+    title: "Jujutsu Kaisen",
+    genre: "Action", 
     status: "Completed",
     rating: 8.9,
     views: 45200,
     chapter: "Chapter 20",
     updatedDaysAgo: 3,
     cover: "crimson",
-    description: "Two rivals. One promise. No turning back.",
+    image: "/covers/jjk.jpeg",
+    
   },
   {
     id: 6,
-    title: "Little Days",
-    genre: "Slice of Life",
+    title: "Retour Our Sources",
+    genre: "Romance",
     status: "Ongoing",
     rating: 9.1,
     views: 9500,
     chapter: "Chapter 15",
     updatedDaysAgo: 0,
     cover: "days",
-    description: "Small moments that make a life.",
+    image: "/covers/retouroursources.jpeg",
+    
+  },
+  {
+    id: 7,
+    title: "Orange",
+    genre: "Slice of Life",
+    status: "Ongoing",
+    rating: 8.6,
+    views: 89000,
+    chapter: "Chapter 27",
+    updatedDaysAgo: 9,
+    cover: "days",
+    image: "/covers/orange.jpeg",
+    
+  },
+  {
+    id: 8,
+    title: "Naruto",
+    genre: "Adventure",
+    status: "Completed",
+    rating: 9.1,
+    views: 76800,
+    chapter: "Chapter 28",
+    updatedDaysAgo: 28,
+    cover: "days",
+    image: "/covers/naruto.jpeg",
+    
+  },
+  {
+    id: 9,
+    title: "Chainsaw Man",
+    genre: "Action",
+    status: "Ongoing",
+    rating: 8.9,
+    views: 8000,
+    chapter: "Chapter 17",
+    updatedDaysAgo: 3,
+    cover: "days",
+    image: "/covers/chainsawman.jpeg",
+    
+  },
+  {
+    id: 10,
+    title: "Monster",
+    genre: "Action",
+    status: "Ongoing",
+    rating: 8.4,
+    views: 7600,
+    chapter: "Chapter 10",
+    updatedDaysAgo: 0,
+    cover: "days",
+    image: "/covers/monster.jpeg",
+    
+  },
+  {
+    id: 11,
+    title: "Death Note",
+    genre: "Mystery",
+    status: "Completed",
+    rating: 9.5,
+    views: 1200,
+    chapter: "Chapter 12",
+    updatedDaysAgo: 9,
+    cover: "days",
+    image: "/covers/deathnote.jpeg",
+    
+  },
+  {
+    id: 12,
+    title: "Love at First Sight",
+    genre: "Romance",
+    status: "Ongoing",
+    rating: 7.9,
+    views: 3000,
+    chapter: "Chapter 8",
+    updatedDaysAgo: 0,
+    cover: "days",
+    image: "/covers/loveatfirstsight.jpeg",
+    
+  },
+  {
+    id: 13,
+    title: "One Punch Man",
+    genre: "Action",
+    status: "Completed",
+    rating: 9.1,
+    views: 8600,
+    chapter: "Chapter 23",
+    updatedDaysAgo: 7,
+    cover: "days",
+    image: "/covers/onepunchman.jpeg",
+    
+  },
+  {
+    id: 14,
+    title: "Bungou Stray Dogs",
+    genre: "Action",
+    status: "Ongoing",
+    rating: 8.7,
+    views: 4800,
+    chapter: "Chapter 3",
+    updatedDaysAgo: 6,
+    cover: "days",
+    image: "/covers/bungoustraydogs.jpeg",
+    
+  },
+  {
+    id: 15,
+    title: "Haikyuu",
+    genre: "Slice of Life",
+    status: "Ongoing",
+    rating: 9.2,
+    views: 8000,
+    chapter: "Chapter 25",
+    updatedDaysAgo: 0,
+    cover: "days",
+    image: "/covers/haikyuu.jpeg",
+    
   },
 ];
 
@@ -119,6 +242,15 @@ function StoryCard({ story, onSelect }) {
       <button
         type="button"
         className={`catalog-cover art-${story.cover}`}
+        style={
+  story.image
+    ? {
+        backgroundImage: `url(${story.image})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }
+    : undefined
+}
         onClick={() => onSelect(story)}
         tabIndex={-1}
         aria-hidden="true"
@@ -171,6 +303,8 @@ export default function ReaderHome({ onBack, onRead }) {
     [filteredStories, sort]
   );
 
+  const featuredStory = stories.find((s) => s.id === 12);
+const editorsPick = stories.find((s) => s.id === 2);
   const latestStories = useMemo(
     () =>
       [...filteredStories].sort(
@@ -276,31 +410,49 @@ export default function ReaderHome({ onBack, onRead }) {
         <section className="catalog-main">
           <div className="featured-grid">
             <button
-              type="button"
-              className="featured-card featured-large"
-              onClick={() => setActiveStory(stories[0])}
-            >
-              <span className="featured-decoration" aria-hidden="true">海</span>
-              <span className="featured-copy">
-                <span className="featured-label">FEATURED STORY</span>
-                <strong>Beyond the Horizon</strong>
-                <span>Adventure · Fantasy</span>
-                <span className="featured-link">Explore story ↗</span>
-              </span>
-            </button>
+  type="button"
+  className="featured-card featured-large"
+  onClick={() => setActiveStory(featuredStory)}
+  style={
+    featuredStory.image
+      ? {
+          backgroundImage: `url(${featuredStory.image})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }
+      : undefined
+  }
+>
+  <span className="featured-decoration" aria-hidden="true">海</span>
+  <span className="featured-copy">
+    <span className="featured-label">FEATURED STORY</span>
+    <strong>{featuredStory.title}</strong>
+    <span>{featuredStory.genre}</span>
+    <span className="featured-link">Explore story ↗</span>
+  </span>
+</button>
 
             <button
-              type="button"
-              className="featured-card featured-small"
-              onClick={() => setActiveStory(stories[1])}
-            >
-              <span className="featured-decoration" aria-hidden="true">花</span>
-              <span className="featured-copy">
-                <span className="featured-label">EDITOR'S PICK</span>
-                <strong>Petals in Winter</strong>
-                <span>Romance · Drama</span>
-              </span>
-            </button>
+  type="button"
+  className="featured-card featured-small"
+  onClick={() => setActiveStory(editorsPick)}
+  style={
+    editorsPick.image
+      ? {
+          backgroundImage: `url(${editorsPick.image})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }
+      : undefined
+  }
+>
+  <span className="featured-decoration" aria-hidden="true">花</span>
+  <span className="featured-copy">
+    <span className="featured-label">EDITOR'S PICK</span>
+    <strong>{editorsPick.title}</strong>
+    <span>{editorsPick.genre}</span>
+  </span>
+</button>
           </div>
 
           {/* Genre chips: one-tap filtering */}
@@ -335,7 +487,7 @@ export default function ReaderHome({ onBack, onRead }) {
 
             {browseStories.length ? (
               <div className="catalog-grid">
-                {browseStories.slice(0, 6).map((story) => (
+                {browseStories.map((story) => (
                   <StoryCard
                     key={story.id}
                     story={story}
@@ -370,7 +522,7 @@ export default function ReaderHome({ onBack, onRead }) {
 
             {latestStories.length ? (
               <div className="catalog-grid">
-                {latestStories.slice(0, 6).map((story) => (
+                {latestStories.map((story) => (
                   <div key={story.id} className="latest-item">
                     <StoryCard story={story} onSelect={setActiveStory} />
                     <p className="latest-updated">
@@ -451,7 +603,18 @@ export default function ReaderHome({ onBack, onRead }) {
                 key={story.id}
                 onClick={() => setActiveStory(story)}
               >
-                <span className={`rated-cover art-${story.cover}`}>
+                <span
+  className={`rated-cover art-${story.cover}`}
+  style={
+    story.image
+      ? {
+          backgroundImage: `url(${story.image})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }
+      : undefined
+  }
+>
                   {String(index + 1).padStart(2, "0")}
                 </span>
                 <span className="rated-details">
