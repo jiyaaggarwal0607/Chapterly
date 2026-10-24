@@ -1,8 +1,8 @@
-﻿
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import "./TranslatorHub.css";
 import BrandLogo from "../components/BrandLogo";
 import { api } from "../api";
+
 function toTask(p) {
   return {
     id: p._id,
@@ -45,36 +45,6 @@ export default function TranslatorHub({ onBack }) {
   const [sending, setSending] = useState(false);
   const [lastResult, setLastResult] = useState(null);
 
-  async function loadApplications() {
-    try {
-      const list = await api("/translation/applications");
-      setApplications(list.map(toApplication));
-    } catch (err) {
-      setFormError(err.message);
-    }
-  }
-
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const list = await api("/translation/projects");
-        if (!cancelled) {
-          setOpportunities(list.map(toTask));
-          setError("");
-        }
-      } catch (err) {
-        if (!cancelled) setError(err.message);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-      loadApplications();
-    }
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -83,6 +53,44 @@ export default function TranslatorHub({ onBack }) {
     portfolio: "",
     motivation: "",
   });
+
+  async function loadApplications() {
+    try {
+      const list = await api("/translation/applications");
+      setApplications(list.map(toApplication));
+    } catch (err) {
+      setFormError(err.message || "Unable to load applications.");
+    }
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const list = await api("/translation/projects");
+
+        if (!cancelled) {
+          setOpportunities(list.map(toTask));
+          setError("");
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message || "Unable to load opportunities.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+
+      if (!cancelled) await loadApplications();
+    }
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filteredTasks = useMemo(() => {
     return opportunities.filter((task) => {
@@ -103,13 +111,15 @@ export default function TranslatorHub({ onBack }) {
   }, [opportunities, search, language, taskType]);
 
   const updateForm = (event) => {
-    setForm({ ...form, [event.target.name]: event.target.value });
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
   };
 
   const handleApply = async (event) => {
     event.preventDefault();
     setFormError("");
     setSending(true);
+
     try {
       if (selectedTask) {
         const created = await api("/translation/applications", {
@@ -124,6 +134,7 @@ export default function TranslatorHub({ onBack }) {
             whyJoin: form.motivation.trim(),
           },
         });
+
         setLastResult({
           id: "APP-" + String(created._id).slice(-6).toUpperCase(),
           title: selectedTask.title,
@@ -139,23 +150,33 @@ export default function TranslatorHub({ onBack }) {
             portfolioLink: form.portfolio.trim(),
           },
         });
-        setLastResult({ id: "PROFILE", title: "Translator profile", status: "Saved" });
+
+        setLastResult({
+          id: "PROFILE",
+          title: "Translator profile",
+          status: "Saved",
+        });
       }
+
       setSubmitted(true);
       await loadApplications();
     } catch (err) {
-      setFormError(err.message);
+      setFormError(err.message || "Unable to submit. Please try again.");
     } finally {
       setSending(false);
     }
   };
+
   const startApplication = (task) => {
     setSelectedTask(task);
     setSubmitted(false);
+    setFormError("");
+
     setForm((current) => ({
       ...current,
       languages: `${task.from} to ${task.to}`,
     }));
+
     document
       .getElementById("translator-application")
       ?.scrollIntoView({ behavior: "smooth" });
@@ -164,14 +185,26 @@ export default function TranslatorHub({ onBack }) {
   return (
     <main className="translator-page">
       <header className="translator-navbar">
-        <button
-          className="translator-brand"
-          type="button"
-          onClick={onBack}
-          aria-label="Return to Chapterly home"
-        >
-          <BrandLogo className="translator-brand-logo" />
-        </button>
+        <div className="translator-nav-left">
+          <button
+            className="translator-back-button"
+            type="button"
+            onClick={onBack}
+            aria-label="Go back to Chapterly home"
+          >
+            <span aria-hidden="true">←</span>
+            <span>Back</span>
+          </button>
+
+          <button
+            className="translator-brand"
+            type="button"
+            onClick={onBack}
+            aria-label="Return to Chapterly home"
+          >
+            <BrandLogo className="translator-brand-logo" />
+          </button>
+        </div>
 
         <nav className="translator-nav">
           <a href="#translator-home">Overview</a>
@@ -186,9 +219,7 @@ export default function TranslatorHub({ onBack }) {
 
       <section className="translator-hero" id="translator-home">
         <div className="translator-hero-copy">
-          <p className="translator-eyebrow">
-            CHAPTERLY · TRANSLATOR HUB
-          </p>
+          <p className="translator-eyebrow">CHAPTERLY · TRANSLATOR HUB</p>
 
           <h1>
             Every story
@@ -305,9 +336,7 @@ export default function TranslatorHub({ onBack }) {
 
               <p className="translator-task-type">{task.type}</p>
               <h3>{task.title}</h3>
-              <p className="translator-task-description">
-                {task.description}
-              </p>
+              <p className="translator-task-description">{task.description}</p>
 
               <div className="translator-language-pair">
                 <span>{task.from}</span>
@@ -322,6 +351,7 @@ export default function TranslatorHub({ onBack }) {
 
               <button
                 className="translator-apply-button"
+                type="button"
                 onClick={() => startApplication(task)}
               >
                 Apply for this project ↗
@@ -330,14 +360,21 @@ export default function TranslatorHub({ onBack }) {
           ))}
         </div>
 
-        {loading && <p className="translator-demo-note">Loading opportunities...</p>}
-        {error && <p className="translator-demo-note" role="alert">{error}</p>}
+        {loading && (
+          <p className="translator-demo-note">Loading opportunities...</p>
+        )}
+
+        {error && (
+          <p className="translator-demo-note" role="alert">{error}</p>
+        )}
+
         {!loading && !error && filteredTasks.length === 0 && (
           <div className="translator-empty">
             <span>⌕</span>
             <h3>No matching opportunities</h3>
             <p>Try changing your search or filters.</p>
             <button
+              type="button"
               onClick={() => {
                 setSearch("");
                 setLanguage("All languages");
@@ -355,77 +392,65 @@ export default function TranslatorHub({ onBack }) {
         </p>
       </section>
 
-        <section
-  className="translator-tasks"
-  id="translator-applications"
->
-  <div className="translator-section-heading">
-    <div>
-      <p className="translator-eyebrow">
-        YOUR ACTIVITY
-      </p>
-
-      <h2>My applications<span>.</span></h2>
-    </div>
-
-    <p>
-      Track the demo applications submitted on this browser.
-    </p>
-  </div>
-
-  {applications.length === 0 ? (
-    <div className="translator-empty">
-      <span>文</span>
-      <h3>No applications yet</h3>
-      <p>
-        Explore opportunities and submit your first application.
-      </p>
-
-      <a
-        className="translator-primary-button"
-        href="#translator-tasks"
-      >
-        Browse opportunities ↗
-      </a>
-    </div>
-  ) : (
-    <div className="translator-task-grid">
-      {applications.map((application) => (
-        <article
-          className="translator-task-card"
-          key={application.key}
-        >
-          <div className="translator-task-top">
-            <span className="translator-task-symbol">文</span>
-            <span className="translator-task-tag">
-              {application.status}
-            </span>
+      <section className="translator-tasks" id="translator-applications">
+        <div className="translator-section-heading">
+          <div>
+            <p className="translator-eyebrow">YOUR ACTIVITY</p>
+            <h2>My applications<span>.</span></h2>
           </div>
 
-          <h3>{application.title}</h3>
+          <p>Track the demo applications submitted on this browser.</p>
+        </div>
 
-          <p className="translator-task-description">
-            Application ID: {application.id}
-          </p>
+        {applications.length === 0 ? (
+          <div className="translator-empty">
+            <span>文</span>
+            <h3>No applications yet</h3>
+            <p>Explore opportunities and submit your first application.</p>
 
-          <div className="translator-language-pair">
-            <span>{application.languages}</span>
+            <a className="translator-primary-button" href="#translator-tasks">
+              Browse opportunities ↗
+            </a>
           </div>
+        ) : (
+          <div className="translator-task-grid">
+            {applications.map((application) => (
+              <article
+                className="translator-task-card"
+                key={application.key}
+              >
+                <div className="translator-task-top">
+                  <span className="translator-task-symbol">文</span>
+                  <span className="translator-task-tag">
+                    {application.status}
+                  </span>
+                </div>
 
-          <div className="translator-task-meta">
-            <span>{application.level}</span>
-            <span>{application.submittedAt}</span>
+                <h3>{application.title}</h3>
+
+                <p className="translator-task-description">
+                  Application ID: {application.id}
+                </p>
+
+                <div className="translator-language-pair">
+                  <span>{application.languages}</span>
+                </div>
+
+                <div className="translator-task-meta">
+                  <span>{application.level}</span>
+                  <span>{application.submittedAt}</span>
+                </div>
+              </article>
+            ))}
           </div>
-        </article>
-      ))}
-    </div>
-  )}
+        )}
 
-  <p className="translator-demo-note">
-    Demo status only. Applications are not sent to a company
-    or reviewed by a real recruiter.
-  </p>
-</section>
+        <p className="translator-demo-note">
+          Demo status only. Applications are not sent to a company
+          or reviewed by a real recruiter.
+        </p>
+      </section>
+
       <section className="translator-how" id="translator-how">
         <div className="translator-section-heading">
           <div>
@@ -468,11 +493,14 @@ export default function TranslatorHub({ onBack }) {
             Interested in translation, proofreading or cultural
             localization? Introduce yourself to Chapterly.
           </p>
-          <div className="translator-application-decoration">翻訳 · 物語 · 文化</div>
+          <div className="translator-application-decoration">
+            翻訳 · 物語 · 文化
+          </div>
         </div>
 
         <form className="translator-form" onSubmit={handleApply}>
           <h3>{selectedTask ? "Apply for a project" : "Translator application"}</h3>
+
           <p className="translator-form-subtitle">
             {selectedTask
               ? selectedTask.title
@@ -481,42 +509,34 @@ export default function TranslatorHub({ onBack }) {
 
           {submitted ? (
             <div className="translator-success">
-  <span>✓</span>
+              <span>✓</span>
+              <h3>Application submitted!</h3>
+              <p>Your application has been saved.</p>
 
-  <h3>Application submitted!</h3>
+              <div className="translator-application-result">
+                <p>
+                  <strong>Application ID:</strong> {lastResult?.id}
+                </p>
+                <p>
+                  <strong>Project:</strong> {lastResult?.title}
+                </p>
+                <p>
+                  <strong>Status:</strong> {lastResult?.status}
+                </p>
+              </div>
 
-  <p>
-    Your application has been saved.
-  </p>
-
-  <div className="translator-application-result">
-    <p>
-      <strong>Application ID:</strong>{" "}
-      {lastResult?.id}
-    </p>
-
-    <p>
-      <strong>Project:</strong>{" "}
-      {lastResult?.title}
-    </p>
-
-    <p>
-      <strong>Status:</strong>{" "}
-      {lastResult?.status}
-    </p>
-  </div>
-
-  <button
-    type="button"
-    className="translator-apply-button"
-    onClick={() => {
-      setSubmitted(false);
-      setSelectedTask(null);
-    }}
-  >
-    Apply for another project
-  </button>
-</div>
+              <button
+                type="button"
+                className="translator-apply-button"
+                onClick={() => {
+                  setSubmitted(false);
+                  setSelectedTask(null);
+                  setFormError("");
+                }}
+              >
+                Apply for another project
+              </button>
+            </div>
           ) : (
             <>
               <div className="translator-form-row">
@@ -530,6 +550,7 @@ export default function TranslatorHub({ onBack }) {
                     required
                   />
                 </label>
+
                 <label>
                   Email
                   <input
@@ -595,10 +616,20 @@ export default function TranslatorHub({ onBack }) {
                 />
               </label>
 
-              {formError && <p className="translator-privacy-note" role="alert">{formError}</p>}
-              <button className="translator-submit-button" type="submit" disabled={sending}>
-                Submit application ↗
+              {formError && (
+                <p className="translator-privacy-note" role="alert">
+                  {formError}
+                </p>
+              )}
+
+              <button
+                className="translator-submit-button"
+                type="submit"
+                disabled={sending}
+              >
+                {sending ? "Submitting..." : "Submit application ↗"}
               </button>
+
               <p className="translator-privacy-note">
                 Demo only. Do not enter sensitive personal information.
               </p>
@@ -608,9 +639,8 @@ export default function TranslatorHub({ onBack }) {
       </section>
 
       <footer className="translator-footer">
-        
         <div className="translator-brand">
-        <BrandLogo className="translator-brand-logo" />
+          <BrandLogo className="translator-brand-logo" />
         </div>
 
         <p>Stories travel further when languages connect.</p>
@@ -619,4 +649,3 @@ export default function TranslatorHub({ onBack }) {
     </main>
   );
 }
-

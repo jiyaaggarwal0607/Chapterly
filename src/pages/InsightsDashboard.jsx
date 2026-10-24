@@ -1,8 +1,8 @@
-﻿
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import "./InsightsDashboard.css";
 import BrandLogo from "../components/BrandLogo";
 import { api } from "../api";
+
 const num = (n) => Number(n || 0).toLocaleString("en-IN");
 
 const EMPTY = {
@@ -16,6 +16,7 @@ const EMPTY = {
 
 function toBars(rows, labelKey, valueKey) {
   const max = Math.max(1, ...rows.map((x) => x[valueKey] || 0));
+
   return rows.map((x) => ({
     name: x[labelKey],
     value: Math.round(((x[valueKey] || 0) / max) * 100),
@@ -23,7 +24,9 @@ function toBars(rows, labelKey, valueKey) {
 }
 
 function buildData(r) {
-  const sum = (rows, key) => (rows || []).reduce((t, x) => t + (x[key] || 0), 0);
+  const sum = (rows, key) =>
+    (rows || []).reduce((total, item) => total + (item[key] || 0), 0);
+
   return {
     audience: num(sum(r.viewsByGenre, "views")),
     engagement: num(sum(r.favouritesByGenre, "favourites")),
@@ -62,8 +65,6 @@ const genreDetails = {
   },
 };
 
-const format = (value) => `${value}%`;
-
 export default function InsightsDashboard({ onBack }) {
   const [period, setPeriod] = useState("30 days");
   const [selectedGenre, setSelectedGenre] = useState("Fantasy");
@@ -75,18 +76,26 @@ export default function InsightsDashboard({ onBack }) {
 
   useEffect(() => {
     let cancelled = false;
+
     api("/insights")
-      .then((r) => {
+      .then((response) => {
         if (cancelled) return;
-        setRaw(r);
-        if (r.viewsByGenre && r.viewsByGenre[0]) setSelectedGenre(r.viewsByGenre[0].genre);
+
+        setRaw(response);
+
+        if (response.viewsByGenre?.[0]) {
+          setSelectedGenre(response.viewsByGenre[0].genre);
+        }
       })
       .catch((err) => {
-        if (!cancelled) setError(err.message);
+        if (!cancelled) {
+          setError(err.message || "Unable to load insights.");
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+
     return () => {
       cancelled = true;
     };
@@ -97,7 +106,7 @@ export default function InsightsDashboard({ onBack }) {
   const recommendation = useMemo(
     () =>
       genreDetails[selectedGenre] || {
-        title: "Explore " + selectedGenre,
+        title: `Explore ${selectedGenre}`,
         description:
           "Test a small campaign around this genre and compare reader response before investing further.",
       },
@@ -107,14 +116,26 @@ export default function InsightsDashboard({ onBack }) {
   return (
     <main className="insights-page">
       <header className="insights-navbar">
-        <button
-          className="insights-brand"
-          type="button"
-          onClick={onBack}
-          aria-label="Return to home"
-        >
-          <BrandLogo className="insights-brand-logo" />
-        </button>
+        <div className="insights-nav-left">
+          <button
+            className="insights-back-button"
+            type="button"
+            onClick={onBack}
+            aria-label="Go back to home"
+          >
+            <span aria-hidden="true">←</span>
+            <span>Back</span>
+          </button>
+
+          <button
+            className="insights-brand"
+            type="button"
+            onClick={onBack}
+            aria-label="Return to home"
+          >
+            <BrandLogo className="insights-brand-logo" />
+          </button>
+        </div>
 
         <div className="insights-nav-right">
           <span className="insights-japan-label">日本 × भारत</span>
@@ -122,14 +143,26 @@ export default function InsightsDashboard({ onBack }) {
       </header>
 
       <div className="insights-content">
-        {loading && <p className="insights-chart-hint">Loading insights...</p>}
-        {error && <p className="insights-chart-hint" role="alert">{error}</p>}
+        {loading && (
+          <p className="insights-chart-hint">Loading insights...</p>
+        )}
+
+        {error && (
+          <p className="insights-chart-hint" role="alert">
+            {error}
+          </p>
+        )}
+
         <section className="insights-heading">
           <div>
-            <p className="insights-eyebrow">CHAPTERLY / BUSINESS INTELLIGENCE</p>
+            <p className="insights-eyebrow">
+              CHAPTERLY / BUSINESS INTELLIGENCE
+            </p>
+
             <h1>
               India audience <span>insights.</span>
             </h1>
+
             <p className="insights-subtitle">
               Understand fandom preferences and explore opportunities
               for Japanese content and merchandise in India.
@@ -138,6 +171,7 @@ export default function InsightsDashboard({ onBack }) {
 
           <label className="insights-period-control">
             <span>Reporting period</span>
+
             <select
               value={period}
               onChange={(event) => setPeriod(event.target.value)}
@@ -151,29 +185,36 @@ export default function InsightsDashboard({ onBack }) {
 
         <div className="insights-demo-banner">
           <span className="insights-demo-icon">i</span>
+
           <p>
             <strong>Live platform data</strong>
             <span>
               These figures come from Chapterly platform data, not market-wide statistics.
             </span>
           </p>
+
           <span className="insights-sample-tag">LIVE</span>
         </div>
 
         <nav className="insights-tabs" aria-label="Insight categories">
           <button
+            type="button"
             className={activeTab === "audience" ? "active" : ""}
             onClick={() => setActiveTab("audience")}
           >
             Audience overview
           </button>
+
           <button
+            type="button"
             className={activeTab === "content" ? "active" : ""}
             onClick={() => setActiveTab("content")}
           >
             Content trends
           </button>
+
           <button
+            type="button"
             className={activeTab === "merch" ? "active" : ""}
             onClick={() => setActiveTab("merch")}
           >
@@ -252,16 +293,19 @@ export default function InsightsDashboard({ onBack }) {
                       </span>
                       {genre.name}
                     </span>
+
                     <span className="insights-bar-track">
                       <span
                         className="insights-bar-fill"
                         style={{ width: `${genre.value}%` }}
                       />
                     </span>
+
                     <strong>{genre.value}</strong>
                   </button>
                 ))}
               </div>
+
               <p className="insights-chart-hint">
                 Select a genre to explore a suggested strategy.
               </p>
@@ -273,9 +317,11 @@ export default function InsightsDashboard({ onBack }) {
               <p className="insights-selected-label">SELECTED GENRE</p>
               <h2>{selectedGenre}</h2>
               <h3>{recommendation.title}</h3>
+
               <p className="insights-recommendation-copy">
                 {recommendation.description}
               </p>
+
               <div className="insights-strategy-note">
                 <span>↗</span>
                 <p>
@@ -298,9 +344,11 @@ export default function InsightsDashboard({ onBack }) {
                 <p>Compare the illustrative interest scores below.</p>
               </div>
             </div>
+
             <div className="insights-content-trends">
               {data.genres.map((genre) => (
                 <button
+                  type="button"
                   key={genre.name}
                   className="insights-trend-card"
                   onClick={() => setSelectedGenre(genre.name)}
@@ -308,12 +356,14 @@ export default function InsightsDashboard({ onBack }) {
                   <span className="insights-trend-jp">物語</span>
                   <span>{genre.name}</span>
                   <strong>{genre.value}/100</strong>
+
                   <span className="insights-mini-track">
                     <span style={{ width: `${genre.value}%` }} />
                   </span>
                 </button>
               ))}
             </div>
+
             <p className="insights-chart-hint">
               Genre scores are illustrative and intended to demonstrate
               how the dashboard could compare audience preferences.
@@ -331,6 +381,7 @@ export default function InsightsDashboard({ onBack }) {
                   <p>Relative wishlist saves (top category = 100)</p>
                 </div>
               </div>
+
               <div className="insights-bars">
                 {data.merch.map((item, index) => (
                   <div className="insights-bar-row" key={item.name}>
@@ -340,12 +391,14 @@ export default function InsightsDashboard({ onBack }) {
                       </span>
                       {item.name}
                     </span>
+
                     <span className="insights-bar-track">
                       <span
                         className="insights-bar-fill"
                         style={{ width: `${item.value}%` }}
                       />
                     </span>
+
                     <strong>{item.value}</strong>
                   </div>
                 ))}
@@ -356,11 +409,13 @@ export default function InsightsDashboard({ onBack }) {
               <p className="insights-eyebrow">MARKET OPPORTUNITY</p>
               <div className="insights-recommendation-symbol">◇</div>
               <h2>Test before scaling.</h2>
+
               <p className="insights-recommendation-copy">
                 Consider a limited product drop, a small fan survey and
                 a price-preference test before expanding merchandise
                 distribution in India.
               </p>
+
               <div className="insights-strategy-note">
                 <span>↗</span>
                 <p>
@@ -378,6 +433,7 @@ export default function InsightsDashboard({ onBack }) {
           <article className="insights-panel">
             <p className="insights-eyebrow">03 / MARKET NOTES</p>
             <h2>Opportunities to explore</h2>
+
             <div className="insights-opportunity">
               <span>01</span>
               <div>
@@ -385,6 +441,7 @@ export default function InsightsDashboard({ onBack }) {
                 <p>Test English and Hindi discovery experiences.</p>
               </div>
             </div>
+
             <div className="insights-opportunity">
               <span>02</span>
               <div>
@@ -392,6 +449,7 @@ export default function InsightsDashboard({ onBack }) {
                 <p>Research preferred products and comfortable price ranges.</p>
               </div>
             </div>
+
             <div className="insights-opportunity">
               <span>03</span>
               <div>
@@ -405,10 +463,12 @@ export default function InsightsDashboard({ onBack }) {
             <div className="insights-export-icon">↗</div>
             <p className="insights-eyebrow">FOR JAPANESE PUBLISHERS</p>
             <h2>From fandom to strategy.</h2>
+
             <p>
               Use audience signals to form hypotheses for localization,
               product planning and future market research.
             </p>
+
             <div className="insights-export-tags">
               <span>Localization</span>
               <span>Merchandising</span>
@@ -420,7 +480,8 @@ export default function InsightsDashboard({ onBack }) {
         <footer className="insights-footer">
           <div className="insights-footer-brand">
             <BrandLogo className="insights-footer-logo" />
-        </div>
+          </div>
+
           <p>Connecting Japanese stories with Indian fandom.</p>
           <span>Prototype dashboard · Sample data only</span>
         </footer>
@@ -428,4 +489,3 @@ export default function InsightsDashboard({ onBack }) {
     </main>
   );
 }
-

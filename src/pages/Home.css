@@ -1073,3 +1073,113 @@
 .chapterly-home.light-theme .header-note {
   color: #666666;
 }
+/* ===== SETTINGS MODAL FIX ===== */
+
+.home-modal {
+  box-sizing: border-box;
+  width: min(92vw, 460px);
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 38px 32px 32px;
+  border: 1px solid rgba(255, 143, 163, 0.25);
+  border-radius: 22px;
+  background: #171416;
+  color: #f8f4f4;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+}
+
+.home-modal h2 {
+  margin: 8px 0 28px;
+  color: #f8f4f4;
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.8px;
+}
+
+.home-modal .modal-eyebrow {
+  color: #ff8fa3;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  width: 100%;
+  margin: 0 0 22px;
+  color: #e7dfe2;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.settings-field input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 48px;
+  padding: 13px 15px;
+  border: 1px solid #41343a;
+  border-radius: 10px;
+  outline: none;
+  background: #211b1f;
+  color: #f8f4f4;
+  font-family: inherit;
+  font-size: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.settings-field input::placeholder {
+  color: #8f8187;
+  opacity: 1;
+}
+
+.settings-field input:focus {
+  border-color: #ff8fa3;
+  box-shadow: 0 0 0 3px rgba(255, 143, 163, 0.12);
+}
+
+.settings-save-button {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 8px;
+  padding: 13px 18px;
+  border: none;
+  border-radius: 10px;
+  background: #e63946;
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.settings-save-button:hover:not(:disabled) {
+  background: #ff5060;
+  transform: translateY(-1px);
+}
+
+.settings-save-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.home-modal .modal-description {
+  margin: 14px 0;
+  color: #c4b7bd;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+@media (max-width: 480px) {
+  .home-modal {
+    padding: 32px 22px 24px;
+    border-radius: 18px;
+  }
+
+  .home-modal h2 {
+    font-size: 26px;
+  }
+}
