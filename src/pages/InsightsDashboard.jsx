@@ -1,66 +1,38 @@
-
-import { useMemo, useState } from "react";
+﻿
+import { useEffect, useMemo, useState } from "react";
 import "./InsightsDashboard.css";
 import BrandLogo from "../components/BrandLogo";
-const insightsData = {
-  "7 days": {
-    audience: "2,480",
-    engagement: "68%",
-    topGenre: "Fantasy",
-    merchInterest: "74%",
-    genres: [
-      { name: "Fantasy", value: 86 },
-      { name: "Romance", value: 72 },
-      { name: "Action", value: 64 },
-      { name: "Slice of Life", value: 49 },
-      { name: "Mystery", value: 38 },
-    ],
-    merch: [
-      { name: "Character figures", value: 82 },
-      { name: "Apparel", value: 68 },
-      { name: "Keychains", value: 61 },
-      { name: "Art prints", value: 45 },
-    ],
-  },
-  "30 days": {
-    audience: "8,640",
-    engagement: "72%",
-    topGenre: "Fantasy",
-    merchInterest: "79%",
-    genres: [
-      { name: "Fantasy", value: 91 },
-      { name: "Romance", value: 78 },
-      { name: "Action", value: 69 },
-      { name: "Slice of Life", value: 55 },
-      { name: "Mystery", value: 43 },
-    ],
-    merch: [
-      { name: "Character figures", value: 85 },
-      { name: "Apparel", value: 73 },
-      { name: "Keychains", value: 66 },
-      { name: "Art prints", value: 51 },
-    ],
-  },
-  "90 days": {
-    audience: "21,300",
-    engagement: "75%",
-    topGenre: "Fantasy",
-    merchInterest: "81%",
-    genres: [
-      { name: "Fantasy", value: 94 },
-      { name: "Romance", value: 81 },
-      { name: "Action", value: 76 },
-      { name: "Slice of Life", value: 60 },
-      { name: "Mystery", value: 47 },
-    ],
-    merch: [
-      { name: "Character figures", value: 88 },
-      { name: "Apparel", value: 77 },
-      { name: "Keychains", value: 70 },
-      { name: "Art prints", value: 56 },
-    ],
-  },
+import { api } from "../api";
+const num = (n) => Number(n || 0).toLocaleString("en-IN");
+
+const EMPTY = {
+  audience: "-",
+  engagement: "-",
+  topGenre: "-",
+  merchInterest: "-",
+  genres: [],
+  merch: [],
 };
+
+function toBars(rows, labelKey, valueKey) {
+  const max = Math.max(1, ...rows.map((x) => x[valueKey] || 0));
+  return rows.map((x) => ({
+    name: x[labelKey],
+    value: Math.round(((x[valueKey] || 0) / max) * 100),
+  }));
+}
+
+function buildData(r) {
+  const sum = (rows, key) => (rows || []).reduce((t, x) => t + (x[key] || 0), 0);
+  return {
+    audience: num(sum(r.viewsByGenre, "views")),
+    engagement: num(sum(r.favouritesByGenre, "favourites")),
+    topGenre: (r.top && r.top.genreByViews) || "-",
+    merchInterest: num(sum(r.wishlistByCategory, "count")),
+    genres: toBars((r.viewsByGenre || []).slice(0, 5), "genre", "views"),
+    merch: toBars(r.wishlistByCategory || [], "category", "count"),
+  };
+}
 
 const genreDetails = {
   Fantasy: {
@@ -97,10 +69,38 @@ export default function InsightsDashboard({ onBack }) {
   const [selectedGenre, setSelectedGenre] = useState("Fantasy");
   const [activeTab, setActiveTab] = useState("audience");
 
-  const data = insightsData[period];
+  const [raw, setRaw] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    api("/insights")
+      .then((r) => {
+        if (cancelled) return;
+        setRaw(r);
+        if (r.viewsByGenre && r.viewsByGenre[0]) setSelectedGenre(r.viewsByGenre[0].genre);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const data = useMemo(() => (raw ? buildData(raw) : EMPTY), [raw]);
 
   const recommendation = useMemo(
-    () => genreDetails[selectedGenre],
+    () =>
+      genreDetails[selectedGenre] || {
+        title: "Explore " + selectedGenre,
+        description:
+          "Test a small campaign around this genre and compare reader response before investing further.",
+      },
     [selectedGenre]
   );
 
@@ -122,6 +122,8 @@ export default function InsightsDashboard({ onBack }) {
       </header>
 
       <div className="insights-content">
+        {loading && <p className="insights-chart-hint">Loading insights...</p>}
+        {error && <p className="insights-chart-hint" role="alert">{error}</p>}
         <section className="insights-heading">
           <div>
             <p className="insights-eyebrow">CHAPTERLY / BUSINESS INTELLIGENCE</p>
@@ -150,13 +152,12 @@ export default function InsightsDashboard({ onBack }) {
         <div className="insights-demo-banner">
           <span className="insights-demo-icon">i</span>
           <p>
-            <strong>Prototype data</strong>
+            <strong>Live platform data</strong>
             <span>
-              All metrics on this dashboard are illustrative sample data,
-              not measured Indian audience statistics.
+              These figures come from Chapterly platform data, not market-wide statistics.
             </span>
           </p>
-          <span className="insights-sample-tag">DEMO</span>
+          <span className="insights-sample-tag">LIVE</span>
         </div>
 
         <nav className="insights-tabs" aria-label="Insight categories">
@@ -183,22 +184,22 @@ export default function InsightsDashboard({ onBack }) {
         <section className="insights-metric-grid">
           <article className="insights-metric-card">
             <div className="insights-metric-top">
-              <span>Audience sample</span>
+              <span>Total views</span>
               <span className="insights-metric-icon">◉</span>
             </div>
             <strong>{data.audience}</strong>
-            <p>Illustrative audience records</p>
-            <span className="insights-metric-foot">↗ Sample metric</span>
+            <p>Across all genres</p>
+            <span className="insights-metric-foot">↗ Live metric</span>
           </article>
 
           <article className="insights-metric-card">
             <div className="insights-metric-top">
-              <span>Engagement rate</span>
+              <span>Reader favourites</span>
               <span className="insights-metric-icon">↗</span>
             </div>
             <strong>{data.engagement}</strong>
-            <p>Illustrative engagement metric</p>
-            <span className="insights-metric-foot">◎ Sample metric</span>
+            <p>Favourites saved by readers</p>
+            <span className="insights-metric-foot">◎ Live metric</span>
           </article>
 
           <article className="insights-metric-card">
@@ -207,17 +208,17 @@ export default function InsightsDashboard({ onBack }) {
               <span className="insights-metric-icon">✦</span>
             </div>
             <strong className="insights-metric-word">{data.topGenre}</strong>
-            <p>Highest illustrative genre score</p>
+            <p>Most viewed genre</p>
             <span className="insights-metric-foot">✧ Content signal</span>
           </article>
 
           <article className="insights-metric-card">
             <div className="insights-metric-top">
-              <span>Merch interest</span>
+              <span>Wishlist saves</span>
               <span className="insights-metric-icon">◇</span>
             </div>
             <strong>{data.merchInterest}</strong>
-            <p>Illustrative interest score</p>
+            <p>Products saved by readers</p>
             <span className="insights-metric-foot">◎ Commerce signal</span>
           </article>
         </section>
@@ -229,7 +230,7 @@ export default function InsightsDashboard({ onBack }) {
                 <div>
                   <p className="insights-eyebrow">01 / AUDIENCE</p>
                   <h2>Genre popularity</h2>
-                  <p>Illustrative relative interest score</p>
+                  <p>Relative views (top genre = 100)</p>
                 </div>
                 <span className="insights-panel-badge">Top 5</span>
               </div>
@@ -327,7 +328,7 @@ export default function InsightsDashboard({ onBack }) {
                 <div>
                   <p className="insights-eyebrow">COMMERCE / PRODUCT SIGNALS</p>
                   <h2>Merchandise interest</h2>
-                  <p>Illustrative product category scores</p>
+                  <p>Relative wishlist saves (top category = 100)</p>
                 </div>
               </div>
               <div className="insights-bars">
@@ -427,3 +428,4 @@ export default function InsightsDashboard({ onBack }) {
     </main>
   );
 }
+
