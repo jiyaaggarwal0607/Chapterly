@@ -1,90 +1,28 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import "./ReaderHome.css";
 import BrandLogo from "../components/BrandLogo";
-const stories = [
-  {
-    id: 1,
-    title: "Beyond the Horizon",
-    genre: "Adventure",
-    status: "Ongoing",
-    rating: 9.4,
-    views: 24300,
-    chapter: "Chapter 24",
-    updatedDaysAgo: 0,
-    cover: "ocean",
-    description: "A journey beyond the edge of the known world.",
-  },
-  {
-    id: 2,
-    title: "Petals in Winter",
-    genre: "Romance",
-    status: "Completed",
-    rating: 9.7,
-    views: 18600,
-    chapter: "Chapter 18",
-    updatedDaysAgo: 1,
-    cover: "petals",
-    description: "Some stories bloom in the coldest seasons.",
-  },
-  {
-    id: 3,
-    title: "The Last Shrine",
-    genre: "Fantasy",
-    status: "Ongoing",
-    rating: 9.2,
-    views: 32100,
-    chapter: "Chapter 32",
-    updatedDaysAgo: 0,
-    cover: "shrine",
-    description: "An ancient secret awakens beneath the city.",
-  },
-  {
-    id: 4,
-    title: "Midnight Frequency",
-    genre: "Mystery",
-    status: "Ongoing",
-    rating: 9.5,
-    views: 12800,
-    chapter: "Chapter 12",
-    updatedDaysAgo: 2,
-    cover: "night",
-    description: "A mysterious broadcast changes everything.",
-  },
-  {
-    id: 5,
-    title: "Crimson Promise",
-    genre: "Action",
-    status: "Completed",
-    rating: 8.9,
-    views: 45200,
-    chapter: "Chapter 20",
-    updatedDaysAgo: 3,
-    cover: "crimson",
-    description: "Two rivals. One promise. No turning back.",
-  },
-  {
-    id: 6,
-    title: "Little Days",
-    genre: "Slice of Life",
-    status: "Ongoing",
-    rating: 9.1,
-    views: 9500,
-    chapter: "Chapter 15",
-    updatedDaysAgo: 0,
-    cover: "days",
-    description: "Small moments that make a life.",
-  },
-];
+import { api } from "../api";
+const COVER_ARTS = ["ocean", "petals", "shrine", "night", "crimson", "days"];
 
-const genres = [
-  "All genres",
-  "Action",
-  "Adventure",
-  "Romance",
-  "Fantasy",
-  "Mystery",
-  "Slice of Life",
-];
+function toStory(m) {
+  const genres = m.genres && m.genres.length ? m.genres : ["Other"];
+  const days = Math.max(0, Math.floor((Date.now() - new Date(m.updatedAt).getTime()) / 86400000));
+  return {
+    id: m._id,
+    title: m.title,
+    genres,
+    genre: genres.join(" \u00b7 "),
+    status: m.status ? m.status.charAt(0).toUpperCase() + m.status.slice(1) : "Ongoing",
+    rating: Number(m.rating) || 0,
+    views: Number(m.views) || 0,
+    chapter: "Chapter " + (m.latestChapter ?? 0),
+    updatedDaysAgo: days,
+    cover: COVER_ARTS[parseInt(String(m._id).slice(-2), 16) % COVER_ARTS.length],
+    description: m.description || "",
+  };
+}
+
+
 
 const statuses = ["All", "Ongoing", "Completed"];
 const sortOptions = ["Popular", "Top rated", "Title A–Z"];
@@ -152,18 +90,72 @@ export default function ReaderHome({ onBack, onRead }) {
   const [activeStory, setActiveStory] = useState(null);
   const closeButtonRef = useRef(null);
 
+  const [stories, setStories] = useState([]);
+  const [featuredData, setFeaturedData] = useState({ featured: null, editorsPick: null });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [favIds, setFavIds] = useState([]);
+  const [favMessage, setFavMessage] = useState("");
+
+  const genres = useMemo(
+    () => ["All genres", ...Array.from(new Set(stories.flatMap((s) => s.genres))).sort()],
+    [stories]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const [list, feat] = await Promise.all([api("/manga"), api("/manga/featured")]);
+        if (cancelled) return;
+        setStories(list.map(toStory));
+        setFeaturedData({
+          featured: feat.featured ? toStory(feat.featured) : null,
+          editorsPick: feat.editorsPick ? toStory(feat.editorsPick) : null,
+        });
+        setError("");
+      } catch (err) {
+        if (!cancelled) setError(err.message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+      try {
+        const favs = await api("/favourites");
+        if (!cancelled) setFavIds(favs.map((x) => x._id));
+      } catch (err) {
+        if (!cancelled) setFavMessage(err.message);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function toggleFavourite(story) {
+    const isFav = favIds.includes(story.id);
+    setFavMessage("Saving...");
+    try {
+      await api("/favourites/" + story.id, { method: isFav ? "DELETE" : "POST" });
+      setFavIds(isFav ? favIds.filter((i) => i !== story.id) : [...favIds, story.id]);
+      setFavMessage(isFav ? "Removed from favourites." : "Added to favourites.");
+    } catch (err) {
+      setFavMessage(err.message);
+    }
+  }
+
   const filteredStories = useMemo(() => {
     const q = search.trim().toLowerCase();
     return stories.filter((story) => {
       const matchesSearch =
         !q ||
         story.title.toLowerCase().includes(q) ||
-        story.genre.toLowerCase().includes(q);
-      const matchesGenre = genre === "All genres" || story.genre === genre;
+        story.genres.join(" ").toLowerCase().includes(q);
+      const matchesGenre = genre === "All genres" || story.genres.includes(genre);
       const matchesStatus = status === "All" || story.status === status;
       return matchesSearch && matchesGenre && matchesStatus;
     });
-  }, [search, genre, status]);
+  }, [stories, search, genre, status]);
 
   /* "Order by" controls the first section */
   const browseStories = useMemo(
@@ -174,14 +166,14 @@ export default function ReaderHome({ onBack, onRead }) {
   const latestStories = useMemo(
     () =>
       [...filteredStories].sort(
-        (a, b) => a.updatedDaysAgo - b.updatedDaysAgo || b.id - a.id
+        (a, b) => a.updatedDaysAgo - b.updatedDaysAgo || String(b.id).localeCompare(String(a.id))
       ),
     [filteredStories]
   );
 
   const topRatedStories = useMemo(
     () => [...stories].sort((a, b) => b.rating - a.rating).slice(0, 5),
-    []
+    [stories]
   );
 
   useEffect(() => {
@@ -195,6 +187,7 @@ export default function ReaderHome({ onBack, onRead }) {
     document.addEventListener("keydown", onKeyDown);
     document.body.style.overflow = "hidden";
     closeButtonRef.current?.focus();
+    setFavMessage("");
 
     return () => {
       document.removeEventListener("keydown", onKeyDown);
@@ -274,17 +267,23 @@ export default function ReaderHome({ onBack, onRead }) {
 
       <div className="catalog-layout" id="home">
         <section className="catalog-main">
+          {loading && <p className="sidebar-caption">Loading stories...</p>}
+          {error && (
+            <div className="no-results">
+              <p>{error}</p>
+            </div>
+          )}
           <div className="featured-grid">
             <button
               type="button"
               className="featured-card featured-large"
-              onClick={() => setActiveStory(stories[0])}
+              onClick={() => featuredData.featured && setActiveStory(featuredData.featured)}
             >
               <span className="featured-decoration" aria-hidden="true">海</span>
               <span className="featured-copy">
                 <span className="featured-label">FEATURED STORY</span>
-                <strong>Beyond the Horizon</strong>
-                <span>Adventure · Fantasy</span>
+                <strong>{featuredData.featured ? featuredData.featured.title : "Coming soon"}</strong>
+                <span>{featuredData.featured ? featuredData.featured.genre : ""}</span>
                 <span className="featured-link">Explore story ↗</span>
               </span>
             </button>
@@ -292,13 +291,13 @@ export default function ReaderHome({ onBack, onRead }) {
             <button
               type="button"
               className="featured-card featured-small"
-              onClick={() => setActiveStory(stories[1])}
+              onClick={() => featuredData.editorsPick && setActiveStory(featuredData.editorsPick)}
             >
               <span className="featured-decoration" aria-hidden="true">花</span>
               <span className="featured-copy">
                 <span className="featured-label">EDITOR'S PICK</span>
-                <strong>Petals in Winter</strong>
-                <span>Romance · Drama</span>
+                <strong>{featuredData.editorsPick ? featuredData.editorsPick.title : "Coming soon"}</strong>
+                <span>{featuredData.editorsPick ? featuredData.editorsPick.genre : ""}</span>
               </span>
             </button>
           </div>
@@ -508,6 +507,15 @@ export default function ReaderHome({ onBack, onRead }) {
             >
               Read now
             </button>
+
+            <button
+              type="button"
+              className="filter-button dialog-read"
+              onClick={() => toggleFavourite(activeStory)}
+            >
+              {favIds.includes(activeStory.id) ? "Remove from favourites" : "Add to favourites"}
+            </button>
+            {favMessage && <p className="dialog-note">{favMessage}</p>}
 
             <p className="dialog-note">
               Sample story for the hackathon prototype. The reading page will

@@ -1,13 +1,59 @@
-
-import { useState } from "react";
+﻿import { useState } from "react";
 import "./Landing.css";
-import BrandLogo from "../components/BrandLogo";  
+import BrandLogo from "../components/BrandLogo";
+import { api } from "../api";
+
 export default function Landing({ onReaderEnter, onCompanyEnter }) {
   const [role, setRole] = useState("");
   const [mode, setMode] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit() {
+    if (mode === "signup" && !name.trim()) {
+      alert("Please enter your name.");
+      return;
+    }
+    if (!email.trim() || !password.trim()) {
+      alert("Please enter your email and password.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      alert("Please enter a valid email address.");
+      return;
+    }
+    if (mode === "signup" && password.length < 6) {
+      alert("Password must be at least 6 characters.");
+      return;
+    }
+
+    const backendRole = role === "user" ? "reader" : "company";
+    const body =
+      mode === "signup"
+        ? { name: name.trim(), email: email.trim(), password, role: backendRole }
+        : { email: email.trim(), password, role: backendRole };
+
+    setLoading(true);
+    try {
+      const data = await api(
+        mode === "signup" ? "/auth/register" : "/auth/login",
+        { method: "POST", body }
+      );
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      if (data.user.role === "company") {
+        onCompanyEnter();
+      } else {
+        onReaderEnter();
+      }
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   if (role && mode) {
     return (
@@ -32,64 +78,40 @@ export default function Landing({ onReaderEnter, onCompanyEnter }) {
             {role === "user" ? "Reader account" : "Company account"}
           </p>
 
-          
-        {mode === "signup" && (
+          {mode === "signup" && (
             <input
-            type="text"
-            placeholder={role === "user" ? "Full name" : "Company name"}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-        />
-        )}
+              type="text"
+              placeholder={role === "user" ? "Full name" : "Company name"}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          )}
 
-            <input
+          <input
             type="email"
             placeholder="Email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            />
+          />
 
-            <input
+          <input
             type="password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            />
+          />
 
-          
-            
-        <button
-        className="primary-btn"
-        onClick={() => {
-            if (mode === "signup" && !name.trim()) {
-            alert("Please enter your name.");
-            return;
-            }
-
-            if (!email.trim() || !password.trim()) {
-            alert("Please enter your email and password.");
-            return;
-            }
-
-            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            alert("Please enter a valid email address.");
-            return;
-            }
-
-            if (mode === "signup" && password.length < 6) {
-            alert("Password must be at least 6 characters.");
-            return;
-            }
-
-            if (role === "user") {
-            onReaderEnter();
-            } else {
-            onCompanyEnter();
-            }
-        }}
-        >
-        {mode === "signup" ? "Create account" : "Sign in"}
-        </button>
+          <button
+            className="primary-btn"
+            onClick={handleSubmit}
+            disabled={loading}
+          >
+            {loading
+              ? "Please wait..."
+              : mode === "signup"
+              ? "Create account"
+              : "Sign in"}
+          </button>
 
           <p className="switch-mode">
             {mode === "signup"
