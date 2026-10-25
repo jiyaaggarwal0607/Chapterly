@@ -37,6 +37,33 @@ const MANGA_COVERS = {
   mynewboyfriend: "mynewboyfriend.jpeg",
 };
 
+const LOCAL_STORIES = [
+  { id: 1, title: "The House Husband", genre: "Slice of Life", status: "Ongoing", rating: 9.4, views: 24300, chapter: "Chapter 24", updatedDaysAgo: 0, cover: "ocean", image: "/covers/thehousehusband.jpeg" },
+  { id: 2, title: "Steel Ball Run", genre: "Adventure", status: "Completed", rating: 9.7, views: 18600, chapter: "Chapter 18", updatedDaysAgo: 1, cover: "petals", image: "/covers/steelballrun.jpeg" },
+  { id: 3, title: "Spy x Family", genre: "Mystery", status: "Ongoing", rating: 9.2, views: 32100, chapter: "Chapter 32", updatedDaysAgo: 0, cover: "shrine", image: "/covers/spyxfamily.jpeg" },
+  { id: 4, title: "Sakamoto Days", genre: "Slice of Life", status: "Ongoing", rating: 9.5, views: 12800, chapter: "Chapter 12", updatedDaysAgo: 2, cover: "night", image: "/covers/sakamotodays.jpeg" },
+  { id: 5, title: "Jujutsu Kaisen", genre: "Action", status: "Completed", rating: 8.9, views: 45200, chapter: "Chapter 20", updatedDaysAgo: 3, cover: "crimson", image: "/covers/jjk.jpeg" },
+  { id: 6, title: "Retour Our Sources", genre: "Romance", status: "Ongoing", rating: 9.1, views: 9500, chapter: "Chapter 15", updatedDaysAgo: 0, cover: "days", image: "/covers/retouroursources.jpeg" },
+  { id: 7, title: "Orange", genre: "Slice of Life", status: "Ongoing", rating: 8.6, views: 89000, chapter: "Chapter 27", updatedDaysAgo: 9, cover: "days", image: "/covers/orange.jpeg" },
+  { id: 8, title: "Naruto", genre: "Adventure", status: "Completed", rating: 9.1, views: 76800, chapter: "Chapter 28", updatedDaysAgo: 28, cover: "days", image: "/covers/naruto.jpeg" },
+  { id: 9, title: "Chainsaw Man", genre: "Action", status: "Ongoing", rating: 8.9, views: 8000, chapter: "Chapter 17", updatedDaysAgo: 3, cover: "days", image: "/covers/chainsawman.jpeg" },
+  { id: 10, title: "Monster", genre: "Action", status: "Ongoing", rating: 8.4, views: 7600, chapter: "Chapter 10", updatedDaysAgo: 0, cover: "days", image: "/covers/monster.jpeg" },
+  { id: 11, title: "Death Note", genre: "Mystery", status: "Completed", rating: 9.5, views: 1200, chapter: "Chapter 12", updatedDaysAgo: 9, cover: "days", image: "/covers/deathnote.jpeg" },
+  { id: 12, title: "Love at First Sight", genre: "Romance", status: "Ongoing", rating: 7.9, views: 3000, chapter: "Chapter 8", updatedDaysAgo: 0, cover: "days", image: "/covers/loveatfirstsight.jpeg" },
+  { id: 13, title: "One Punch Man", genre: "Action", status: "Completed", rating: 9.1, views: 8600, chapter: "Chapter 23", updatedDaysAgo: 7, cover: "days", image: "/covers/onepunchman.jpeg" },
+  { id: 14, title: "Bungou Stray Dogs", genre: "Action", status: "Ongoing", rating: 8.7, views: 4800, chapter: "Chapter 3", updatedDaysAgo: 6, cover: "days", image: "/covers/bungoustraydogs.jpeg" },
+  { id: 15, title: "Haikyuu", genre: "Slice of Life", status: "Ongoing", rating: 9.2, views: 8000, chapter: "Chapter 25", updatedDaysAgo: 0, cover: "days", image: "/covers/haikyuu.jpeg" },
+];
+
+const statuses = ["All", "Ongoing", "Completed"];
+const sortOptions = ["Popular", "Top rated", "Title A–Z"];
+
+const sortHeadings = {
+  Popular: { eyebrow: "FAN FAVOURITES", title: "Most popular" },
+  "Top rated": { eyebrow: "HIGHEST SCORES", title: "Top rated stories" },
+  "Title A–Z": { eyebrow: "BROWSE ALL", title: "All stories" },
+};
+
 function normalizeTitle(title = "") {
   return String(title).toLowerCase().replace(/[^a-z0-9]/g, "");
 }
@@ -47,42 +74,56 @@ function getMangaCover(title = "") {
 }
 
 function toStory(m) {
-  const genres = m.genres?.length ? m.genres : ["Other"];
+  const title = m.title || "Untitled";
+  const fallback = LOCAL_STORIES.find(
+    (story) => normalizeTitle(story.title) === normalizeTitle(title)
+  );
+
+  const genres =
+    Array.isArray(m.genres) && m.genres.length
+      ? m.genres
+      : [m.genre || fallback?.genre || "Other"];
+
   const updatedAt = new Date(m.updatedAt).getTime();
   const days = Number.isFinite(updatedAt)
     ? Math.max(0, Math.floor((Date.now() - updatedAt) / 86400000))
-    : 0;
+    : fallback?.updatedDaysAgo ?? 0;
+
+  const statusValue = String(m.status || fallback?.status || "Ongoing");
+  const status =
+    statusValue.charAt(0).toUpperCase() +
+    statusValue.slice(1).toLowerCase();
 
   return {
-    id: m._id,
-    title: m.title || "Untitled",
+    id: m._id || fallback?.id || normalizeTitle(title),
+    title,
     genres,
     genre: genres.join(" · "),
-    status: m.status
-      ? m.status.charAt(0).toUpperCase() + m.status.slice(1)
-      : "Ongoing",
-    rating: Number(m.rating) || 0,
-    views: Number(m.views) || 0,
-    chapter: "Chapter " + (m.latestChapter ?? 0),
-    updatedDaysAgo: days,
+    status,
+    rating: Number(m.rating ?? fallback?.rating) || 0,
+    views: Number(m.views ?? fallback?.views) || 0,
+    chapter: `Chapter ${
+      m.latestChapter ??
+      fallback?.chapter?.replace("Chapter ", "") ??
+      0
+    }`,
+    updatedDaysAgo: m.updatedAt ? days : fallback?.updatedDaysAgo ?? 0,
     cover:
+      fallback?.cover ||
       COVER_ARTS[
-        (parseInt(String(m._id).slice(-2), 16) || 0) %
+        (parseInt(String(m._id || "").slice(-2), 16) || 0) %
           COVER_ARTS.length
       ],
-    image: getMangaCover(m.title),
+    // Prefer the known local cover. Unknown titles retain their API cover if provided.
+    image:
+      getMangaCover(title) ||
+      fallback?.image ||
+      m.coverImage ||
+      m.cover ||
+      "",
     description: m.description || "",
   };
 }
-
-const statuses = ["All", "Ongoing", "Completed"];
-const sortOptions = ["Popular", "Top rated", "Title A–Z"];
-
-const sortHeadings = {
-  Popular: { eyebrow: "FAN FAVOURITES", title: "Most popular" },
-  "Top rated": { eyebrow: "HIGHEST SCORES", title: "Top rated stories" },
-  "Title A–Z": { eyebrow: "BROWSE ALL", title: "All stories" },
-};
 
 function formatViews(n) {
   return n >= 1000
@@ -98,15 +139,8 @@ function formatUpdated(days) {
 
 function sortStories(list, sort) {
   const copy = [...list];
-
-  if (sort === "Top rated") {
-    return copy.sort((a, b) => b.rating - a.rating);
-  }
-
-  if (sort === "Title A–Z") {
-    return copy.sort((a, b) => a.title.localeCompare(b.title));
-  }
-
+  if (sort === "Top rated") return copy.sort((a, b) => b.rating - a.rating);
+  if (sort === "Title A–Z") return copy.sort((a, b) => a.title.localeCompare(b.title));
   return copy.sort((a, b) => b.views - a.views);
 }
 
@@ -134,9 +168,7 @@ function StoryCard({ story, onSelect }) {
         {!story.image && (
           <>
             <span className="cover-edition">CHAPTERLY</span>
-            <span className="cover-kanji" aria-hidden="true">
-              物語
-            </span>
+            <span className="cover-kanji" aria-hidden="true">物語</span>
             <span className="cover-name">{story.title}</span>
             <span className="cover-genre">{story.genre}</span>
           </>
@@ -164,32 +196,30 @@ export default function ReaderHome({ onBack, onRead }) {
   const [status, setStatus] = useState("All");
   const [sort, setSort] = useState("Popular");
   const [activeStory, setActiveStory] = useState(null);
-
   const closeButtonRef = useRef(null);
 
-  const [stories, setStories] = useState([]);
+  const [stories, setStories] = useState(LOCAL_STORIES);
+  const [useLocalCoversOnly] = useState(true);
   const [featuredData, setFeaturedData] = useState({
-    featured: null,
-    editorsPick: null,
+    featured: LOCAL_STORIES.find((s) => s.id === 12),
+    editorsPick: LOCAL_STORIES.find((s) => s.id === 2),
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [favIds, setFavIds] = useState([]);
   const [favMessage, setFavMessage] = useState("");
 
-  // Return to the parent page; fall back to the root URL.
   function handleBack() {
-    if (typeof onBack === "function") {
-      onBack();
-    } else {
-      window.location.assign("/");
-    }
+    if (typeof onBack === "function") onBack();
+    else window.location.assign("/");
   }
 
   const genres = useMemo(
     () => [
       "All genres",
-      ...Array.from(new Set(stories.flatMap((s) => s.genres))).sort(),
+      ...Array.from(
+        new Set(stories.flatMap((s) => s.genres || [s.genre]))
+      ).sort(),
     ],
     [stories]
   );
@@ -197,7 +227,7 @@ export default function ReaderHome({ onBack, onRead }) {
   useEffect(() => {
     let cancelled = false;
 
-    async function load() {
+    async function loadManga() {
       try {
         const [list, feat] = await Promise.all([
           api("/manga"),
@@ -206,37 +236,45 @@ export default function ReaderHome({ onBack, onRead }) {
 
         if (cancelled) return;
 
-        setStories(list.map(toStory));
+        // Only replace the sample catalogue when the API returns usable manga.
+        if (!useLocalCoversOnly && Array.isArray(list) && list.length > 0) {
+            setStories(list.map(toStory));
+        }
 
-        setFeaturedData({
-          featured: feat.featured ? toStory(feat.featured) : null,
-          editorsPick: feat.editorsPick
-            ? toStory(feat.editorsPick)
-            : null,
-        });
-
-        setError("");
-      } catch (err) {
+        if (feat?.featured || feat?.editorsPick) {
+          setFeaturedData((previous) => ({
+            featured: feat.featured
+              ? toStory(feat.featured)
+              : previous.featured,
+            editorsPick: feat.editorsPick
+              ? toStory(feat.editorsPick)
+              : previous.editorsPick,
+          }));
+        }
+      } catch {
         if (!cancelled) {
-          setError(err.message || "Unable to load manga.");
+          setError(
+            "Showing the sample catalogue. Live manga data is unavailable right now."
+          );
         }
       } finally {
         if (!cancelled) setLoading(false);
       }
+    }
 
+    async function loadFavourites() {
       try {
         const favs = await api("/favourites");
-        if (!cancelled) {
+        if (!cancelled && Array.isArray(favs)) {
           setFavIds(favs.map((x) => x._id));
         }
-      } catch (err) {
-        if (!cancelled) {
-          setFavMessage(err.message || "Unable to load favourites.");
-        }
+      } catch {
+        // Browsing still works if favourites are unavailable.
       }
     }
 
-    load();
+    loadManga();
+    loadFavourites();
 
     return () => {
       cancelled = true;
@@ -262,7 +300,7 @@ export default function ReaderHome({ onBack, onRead }) {
         isFav ? "Removed from favourites." : "Added to favourites."
       );
     } catch (err) {
-      setFavMessage(err.message || "Could not update favourites.");
+      setFavMessage(err.message || "Favourites need a working backend.");
     }
   }
 
@@ -270,13 +308,15 @@ export default function ReaderHome({ onBack, onRead }) {
     const q = search.trim().toLowerCase();
 
     return stories.filter((story) => {
+      const storyGenres = story.genres || [story.genre];
+
       const matchesSearch =
         !q ||
         story.title.toLowerCase().includes(q) ||
-        story.genres.join(" ").toLowerCase().includes(q);
+        storyGenres.join(" ").toLowerCase().includes(q);
 
       const matchesGenre =
-        genre === "All genres" || story.genres.includes(genre);
+        genre === "All genres" || storyGenres.includes(genre);
 
       const matchesStatus = status === "All" || story.status === status;
 
@@ -312,7 +352,6 @@ export default function ReaderHome({ onBack, onRead }) {
     };
 
     const previousOverflow = document.body.style.overflow;
-
     document.addEventListener("keydown", onKeyDown);
     document.body.style.overflow = "hidden";
     closeButtonRef.current?.focus();
@@ -332,9 +371,10 @@ export default function ReaderHome({ onBack, onRead }) {
   }
 
   function scrollToSection(id) {
-    document
-      .getElementById(id)
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById(id)?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
   }
 
   function showOngoing() {
@@ -370,24 +410,12 @@ export default function ReaderHome({ onBack, onRead }) {
         </button>
 
         <nav className="catalog-nav" aria-label="Main">
-          <button type="button" onClick={() => scrollToSection("home")}>
-            Home
-          </button>
-          <button type="button" onClick={() => scrollToSection("popular")}>
-            Popular
-          </button>
-          <button type="button" onClick={() => scrollToSection("latest")}>
-            Latest
-          </button>
-          <button type="button" onClick={showOngoing}>
-            Ongoing
-          </button>
-          <button type="button" onClick={() => scrollToSection("filters")}>
-            Filters
-          </button>
-          <button type="button" onClick={() => scrollToSection("top-rated")}>
-            Top rated
-          </button>
+          <button type="button" onClick={() => scrollToSection("home")}>Home</button>
+          <button type="button" onClick={() => scrollToSection("popular")}>Popular</button>
+          <button type="button" onClick={() => scrollToSection("latest")}>Latest</button>
+          <button type="button" onClick={showOngoing}>Ongoing</button>
+          <button type="button" onClick={() => scrollToSection("filters")}>Filters</button>
+          <button type="button" onClick={() => scrollToSection("top-rated")}>Top rated</button>
         </nav>
 
         <label className="navbar-search">
@@ -404,67 +432,48 @@ export default function ReaderHome({ onBack, onRead }) {
 
       <div className="catalog-layout" id="home">
         <section className="catalog-main">
-          {loading && <p className="sidebar-caption">Loading stories...</p>}
-
-          {error && (
-            <div className="no-results">
-              <p>{error}</p>
-            </div>
-          )}
+          {loading && <p className="sidebar-caption">Refreshing stories...</p>}
+          {error && <p className="sidebar-caption">{error}</p>}
 
           <div className="featured-grid">
-            <button
-              type="button"
-              className="featured-card featured-large"
-              onClick={() =>
-                featuredData.featured &&
-                setActiveStory(featuredData.featured)
-              }
-              style={coverStyle(featuredData.featured)}
-              disabled={!featuredData.featured}
-            >
-              {!featuredData.featured?.image && (
-                <span className="featured-decoration" aria-hidden="true">
-                  海
-                </span>
-              )}
-              <span className="featured-copy">
-                <span className="featured-label">FEATURED STORY</span>
-                <strong>
-                  {featuredData.featured
-                    ? featuredData.featured.title
-                    : "Coming soon"}
-                </strong>
-                <span>{featuredData.featured?.genre || ""}</span>
-                <span className="featured-link">Explore story ↗</span>
-              </span>
-            </button>
+            {[
+              {
+                story: featuredData.featured,
+                className: "featured-large",
+                label: "FEATURED STORY",
+                symbol: "海",
+              },
+              {
+                story: featuredData.editorsPick,
+                className: "featured-small",
+                label: "EDITOR'S PICK",
+                symbol: "花",
+              },
+            ].map(({ story, className, label, symbol }) => (
+              <button
+                key={label}
+                type="button"
+                className={`featured-card ${className}`}
+                onClick={() => story && setActiveStory(story)}
+                style={coverStyle(story)}
+                disabled={!story}
+              >
+                {!story?.image && (
+                  <span className="featured-decoration" aria-hidden="true">
+                    {symbol}
+                  </span>
+                )}
 
-            <button
-              type="button"
-              className="featured-card featured-small"
-              onClick={() =>
-                featuredData.editorsPick &&
-                setActiveStory(featuredData.editorsPick)
-              }
-              style={coverStyle(featuredData.editorsPick)}
-              disabled={!featuredData.editorsPick}
-            >
-              {!featuredData.editorsPick?.image && (
-                <span className="featured-decoration" aria-hidden="true">
-                  花
+                <span className="featured-copy">
+                  <span className="featured-label">{label}</span>
+                  <strong>{story?.title || "Coming soon"}</strong>
+                  <span>{story?.genre || ""}</span>
+                  {label === "FEATURED STORY" && (
+                    <span className="featured-link">Explore story ↗</span>
+                  )}
                 </span>
-              )}
-              <span className="featured-copy">
-                <span className="featured-label">EDITOR'S PICK</span>
-                <strong>
-                  {featuredData.editorsPick
-                    ? featuredData.editorsPick.title
-                    : "Coming soon"}
-                </strong>
-                <span>{featuredData.editorsPick?.genre || ""}</span>
-              </span>
-            </button>
+              </button>
+            ))}
           </div>
 
           <div className="genre-chips" role="group" aria-label="Filter by genre">
@@ -485,40 +494,26 @@ export default function ReaderHome({ onBack, onRead }) {
             <div className="catalog-section-heading">
               <div>
                 <span className="section-eyebrow">{heading.eyebrow}</span>
-                <h2>
-                  {heading.title}
-                  <span>.</span>
-                </h2>
+                <h2>{heading.title}<span>.</span></h2>
               </div>
               <span className="section-count">
-                {browseStories.length}{" "}
-                {browseStories.length === 1 ? "STORY" : "STORIES"}
+                {browseStories.length} {browseStories.length === 1 ? "STORY" : "STORIES"}
               </span>
             </div>
 
             {browseStories.length ? (
               <div className="catalog-grid">
                 {browseStories.slice(0, 6).map((story) => (
-                  <StoryCard
-                    key={story.id}
-                    story={story}
-                    onSelect={setActiveStory}
-                  />
+                  <StoryCard key={story.id} story={story} onSelect={setActiveStory} />
                 ))}
               </div>
             ) : (
-              !loading && (
-                <div className="no-results">
-                  <p>No stories match your filters.</p>
-                  <button
-                    type="button"
-                    className="filter-button no-results-button"
-                    onClick={resetFilters}
-                  >
-                    Reset filters
-                  </button>
-                </div>
-              )
+              <div className="no-results">
+                <p>No stories match your filters.</p>
+                <button type="button" className="filter-button no-results-button" onClick={resetFilters}>
+                  Reset filters
+                </button>
+              </div>
             )}
           </section>
 
@@ -526,9 +521,7 @@ export default function ReaderHome({ onBack, onRead }) {
             <div className="catalog-section-heading">
               <div>
                 <span className="section-eyebrow">FRESH FROM THE PAGE</span>
-                <h2>
-                  Latest updates<span>.</span>
-                </h2>
+                <h2>Latest updates<span>.</span></h2>
               </div>
               <span className="section-count">RECENT CHAPTERS</span>
             </div>
@@ -538,25 +531,17 @@ export default function ReaderHome({ onBack, onRead }) {
                 {latestStories.slice(0, 6).map((story) => (
                   <div key={story.id} className="latest-item">
                     <StoryCard story={story} onSelect={setActiveStory} />
-                    <p className="latest-updated">
-                      {formatUpdated(story.updatedDaysAgo)}
-                    </p>
+                    <p className="latest-updated">{formatUpdated(story.updatedDaysAgo)}</p>
                   </div>
                 ))}
               </div>
             ) : (
-              !loading && (
-                <div className="no-results">
-                  <p>Try changing your filters.</p>
-                  <button
-                    type="button"
-                    className="filter-button no-results-button"
-                    onClick={resetFilters}
-                  >
-                    Reset filters
-                  </button>
-                </div>
-              )
+              <div className="no-results">
+                <p>Try changing your filters.</p>
+                <button type="button" className="filter-button no-results-button" onClick={resetFilters}>
+                  Reset filters
+                </button>
+              </div>
             )}
           </section>
         </section>
@@ -570,45 +555,26 @@ export default function ReaderHome({ onBack, onRead }) {
 
             <label className="filter-label">
               Genre
-              <select
-                value={genre}
-                onChange={(event) => setGenre(event.target.value)}
-              >
-                {genres.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
+              <select value={genre} onChange={(event) => setGenre(event.target.value)}>
+                {genres.map((item) => <option key={item}>{item}</option>)}
               </select>
             </label>
 
             <label className="filter-label">
               Status
-              <select
-                value={status}
-                onChange={(event) => setStatus(event.target.value)}
-              >
-                {statuses.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
+              <select value={status} onChange={(event) => setStatus(event.target.value)}>
+                {statuses.map((item) => <option key={item}>{item}</option>)}
               </select>
             </label>
 
             <label className="filter-label">
               Order by
-              <select
-                value={sort}
-                onChange={(event) => setSort(event.target.value)}
-              >
-                {sortOptions.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
+              <select value={sort} onChange={(event) => setSort(event.target.value)}>
+                {sortOptions.map((item) => <option key={item}>{item}</option>)}
               </select>
             </label>
 
-            <button
-              type="button"
-              className="filter-button"
-              onClick={resetFilters}
-            >
+            <button type="button" className="filter-button" onClick={resetFilters}>
               Reset filters ↺
             </button>
           </section>
@@ -627,18 +593,13 @@ export default function ReaderHome({ onBack, onRead }) {
                 key={story.id}
                 onClick={() => setActiveStory(story)}
               >
-                <span
-                  className={`rated-cover art-${story.cover}`}
-                  style={coverStyle(story)}
-                >
+                <span className={`rated-cover art-${story.cover}`} style={coverStyle(story)}>
                   {!story.image && String(index + 1).padStart(2, "0")}
                 </span>
                 <span className="rated-details">
                   <strong>{story.title}</strong>
                   <span>{story.genre}</span>
-                  <span className="rated-score">
-                    ★ {story.rating.toFixed(1)}
-                  </span>
+                  <span className="rated-score">★ {story.rating.toFixed(1)}</span>
                 </span>
               </button>
             ))}
@@ -647,9 +608,7 @@ export default function ReaderHome({ onBack, onRead }) {
       </div>
 
       <footer className="catalog-footer">
-        <span>
-          chapterly<span className="brand-dot">.</span>
-        </span>
+        <span>chapterly<span className="brand-dot">.</span></span>
         <p>READ · DISCOVER · REPEAT</p>
         <p>MADE FOR THE LOVE OF STORIES ✦</p>
       </footer>
@@ -678,41 +637,30 @@ export default function ReaderHome({ onBack, onRead }) {
                 className="story-dialog-cover"
                 src={activeStory.image}
                 alt={`${activeStory.title} manga cover`}
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
               />
             )}
 
             <h2>{activeStory.title}</h2>
-            <p>
-              {activeStory.description || "Discover this story on Chapterly."}
-            </p>
+            <p>{activeStory.description || "Discover this story on Chapterly."}</p>
             <p className="dialog-meta">
               {activeStory.status} · {activeStory.chapter} · ★{" "}
               {activeStory.rating.toFixed(1)} · {formatViews(activeStory.views)} views
             </p>
 
-            <button
-              type="button"
-              className="filter-button dialog-read"
-              onClick={() => handleRead(activeStory)}
-            >
+            <button type="button" className="filter-button dialog-read" onClick={() => handleRead(activeStory)}>
               Read now
             </button>
 
-            <button
-              type="button"
-              className="filter-button dialog-read"
-              onClick={() => toggleFavourite(activeStory)}
-            >
-              {favIds.includes(activeStory.id)
-                ? "Remove from favourites"
-                : "Add to favourites"}
+            <button type="button" className="filter-button dialog-read" onClick={() => toggleFavourite(activeStory)}>
+              {favIds.includes(activeStory.id) ? "Remove from favourites" : "Add to favourites"}
             </button>
 
             {favMessage && <p className="dialog-note">{favMessage}</p>}
-
             <p className="dialog-note">
-              Sample story for the hackathon prototype. The reading page will
-              be connected separately.
+              Sample story for the hackathon prototype. The reading page will be connected separately.
             </p>
           </section>
         </div>
