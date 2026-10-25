@@ -1,5 +1,5 @@
 ﻿import { useState } from "react";
-import "./Landing.css";
+import "./landing.css";
 import BrandLogo from "../components/BrandLogo";
 import { api } from "../api";
 
